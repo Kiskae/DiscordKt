@@ -2,7 +2,10 @@ package net.serverpeon.discord.internal.ws.client
 
 import rx.Subscriber
 import rx.subscriptions.Subscriptions
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.io.Reader
+import java.util.zip.InflaterInputStream
 import javax.websocket.*
 
 internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber: Subscriber<in Event>) : Endpoint() {
@@ -18,15 +21,22 @@ internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber
         subscriber.onNext(Event(session, StartEvent))
 
         // Add message forwarder
-        session.addMessageHandler(Handler(session))
+        session.addMessageHandler(TextHandler(session))
+        session.addMessageHandler(BinaryHandler(session))
     }
 
-    private inner class Handler(val session: Session) : MessageHandler.Whole<Reader> {
-        override fun onMessage(reader: Reader) {
-            if (!subscriber.isUnsubscribed) {
-                translator.translate(reader)?.let {
-                    subscriber.onNext(Event(session, it))
-                }
+    private inner class TextHandler(val session: Session) : MessageHandler.Whole<Reader> {
+        override fun onMessage(reader: Reader) = handleEvent(reader, session)
+    }
+
+    private inner class BinaryHandler(val session: Session) : MessageHandler.Whole<InputStream> {
+        override fun onMessage(src: InputStream) = handleEvent(InputStreamReader(InflaterInputStream(src)), session)
+    }
+
+    private fun handleEvent(reader: Reader, session: Session) {
+        if (!subscriber.isUnsubscribed) {
+            translator.translate(reader)?.let {
+                subscriber.onNext(Event(session, it))
             }
         }
     }

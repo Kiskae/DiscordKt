@@ -40,7 +40,8 @@ fun main(args: Array<String>) {
                         referrer = "",
                         referrerDomain = ""
                 ),
-                large_threshold = 100
+                large_threshold = 100,
+                compress = true
         ), endpoint.url, gson).doAfterTerminate {
             latch.countDown()
         }.subscribe({

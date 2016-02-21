@@ -7,12 +7,12 @@ import net.serverpeon.discord.internal.kTrace
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.outbound.KeepaliveMsg
+import net.serverpeon.discord.internal.ws.data.toObservable
 import org.glassfish.tyrus.client.ClientManager
 import rx.Observable
 import rx.Subscriber
 import rx.schedulers.Schedulers
 import java.net.URI
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
 object DiscordWebsocket {
@@ -21,7 +21,7 @@ object DiscordWebsocket {
 
     fun create(connectMsg: ConnectMsg, socketUrl: URI, gson: Gson): Observable<Event> {
         return Observable.create<Event> { sub ->
-            val connectableRx = createBasicStream(socketUrl, gson).publish()
+            val connectableRx = openWebsocketStream(socketUrl, gson).publish()
 
             // StartEvent is the first event
             connectableRx.first().flatMap { startEvent ->
@@ -31,7 +31,9 @@ object DiscordWebsocket {
             }.connectTo(sub)
 
             // ReadyEvent is the second event
-            connectableRx.first { it.event is Misc.Ready }.flatMap {
+            connectableRx.skip(1).first().flatMap {
+                check(it.event is Misc.Ready)
+                
                 initKeepAlive(it, gson)
             }.connectTo(sub)
 
@@ -53,24 +55,11 @@ object DiscordWebsocket {
         }
     }
 
-    fun <T> Observable<T>.connectTo(sub: Subscriber<*>) {
+    private fun <T> Observable<T>.connectTo(sub: Subscriber<*>) {
         sub.add(this.doOnError { sub.onError(it) }.subscribe())
     }
 
-    fun <T> CompletableFuture<T>.toObservable(): Observable<T> {
-        return Observable.create { sub ->
-            this.whenComplete { result, throwable ->
-                if (throwable != null) {
-                    sub.onError(throwable)
-                } else {
-                    sub.onNext(result)
-                    sub.onCompleted()
-                }
-            }
-        }
-    }
-
-    private fun createBasicStream(socketUrl: URI, gson: Gson): Observable<Event> {
+    private fun openWebsocketStream(socketUrl: URI, gson: Gson): Observable<Event> {
         return Observable.create { sub ->
             val endpoint = DiscordEndpoint(DiscordHandlers.create(gson), sub)
             val future = client.asyncConnectToServer(endpoint, socketUrl)
