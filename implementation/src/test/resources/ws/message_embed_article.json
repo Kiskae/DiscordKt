@@ -1,0 +1,26 @@
+{
+  "id": "151003955734773760",
+  "embeds": [
+    {
+      "url": "http://www.ifixit.com/Teardown/iPhone-4-Teardown/3130/1",
+      "type": "article",
+      "title": "iPhone 4 Teardown",
+      "thumbnail": {
+        "width": 3360,
+        "url": "https://d3nevzfk7ii3be.cloudfront.net/igi/2JwqKBrKPSFxseNf",
+        "proxy_url": "https://images-1.discordapp.net/eyJ1cmwiOiJodHRwczovL2QzbmV2emZrN2lpM2JlLmNsb3VkZnJvbnQubmV0L2lnaS8ySndxS0JyS1BTRnhzZU5mIn0.7_AZUEYqIxPQETVGw5AztrPaH_0.jpg",
+        "height": 2520
+      },
+      "provider": {
+        "url": "https://www.ifixit.com",
+        "name": "iFixit"
+      },
+      "description": "iPhone 4 Teardown.",
+      "author": {
+        "url": "https://www.ifixit.com/User/18/Walter+Galan",
+        "name": "Walter Galan"
+      }
+    }
+  ],
+  "channel_id": "106759482654130176"
+}
