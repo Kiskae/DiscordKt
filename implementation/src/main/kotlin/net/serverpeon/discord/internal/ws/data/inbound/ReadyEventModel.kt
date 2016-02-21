@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.ws.data.event
+package net.serverpeon.discord.internal.ws.data.inbound
 
 import com.google.gson.JsonElement
 import net.serverpeon.discord.internal.rest.data.ChannelModel
@@ -45,7 +45,7 @@ data class ReadyEventModel(val v: Int,
                          val last_message_id: DiscordId<Message>,
                          val id: DiscordId<Channel>)
 
-    data class ExtendedGuild(val voice_states: List<VoiceState>,
+    data class ExtendedGuild(val voice_states: List<VoiceStateModel>,
                              val features: List<String>,
                              val afk_timeout: Duration,
                              val joined_at: ZonedDateTime,
@@ -63,15 +63,6 @@ data class ReadyEventModel(val v: Int,
                              val member_count: Int,
                              val large: Boolean,
                              val channels: List<ChannelModel>) {
-
-        data class VoiceState(val user_id: DiscordId<User>,
-                              val suppress: Boolean,
-                              val session_id: String,
-                              val self_mute: Boolean,
-                              val self_deaf: Boolean,
-                              val mute: Boolean,
-                              val deaf: Boolean,
-                              val channel_id: DiscordId<Channel>)
 
         data class Presence(val user: Ref, val status: String, val game: Game) {
             data class Ref(val id: DiscordId<User>)

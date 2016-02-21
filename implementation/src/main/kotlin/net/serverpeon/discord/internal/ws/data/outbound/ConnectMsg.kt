@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.ws.data.message
+package net.serverpeon.discord.internal.ws.data.outbound
 
 import com.google.gson.annotations.SerializedName
 import net.serverpeon.discord.internal.ws.PayloadOut

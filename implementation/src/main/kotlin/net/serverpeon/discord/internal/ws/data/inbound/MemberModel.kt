@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.ws.data.event
+package net.serverpeon.discord.internal.ws.data.inbound
 
 import net.serverpeon.discord.internal.rest.data.UserModel
 import net.serverpeon.discord.model.DiscordId

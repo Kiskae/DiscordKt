@@ -6,7 +6,7 @@ import net.serverpeon.discord.internal.rest.adapters.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.rx
 import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
-import net.serverpeon.discord.internal.ws.data.message.ConnectMsg
+import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PermissionSet
 import okhttp3.OkHttpClient

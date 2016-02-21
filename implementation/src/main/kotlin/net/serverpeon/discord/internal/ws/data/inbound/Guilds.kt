@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.ws.data.event
+package net.serverpeon.discord.internal.ws.data.inbound
 
 import net.serverpeon.discord.internal.rest.data.GuildModel
 import net.serverpeon.discord.internal.rest.data.RoleModel
@@ -28,4 +28,9 @@ interface Guilds {
         data class Update(val role: RoleModel, val guild_id: DiscordId<Guild>) : Roles
         data class Delete(val role_id: DiscordId<Role>, val guild_id: DiscordId<Guild>) : Roles
     }
+
+    data class EmojiUpdate(val guild_id: DiscordId<Guild>, val emojis: List<GuildModel.DataEmoji>)
+
+    // Sent when integrated services are updated?
+    data class IntegrationsUpdate(val guild_id: DiscordId<Guild>)
 }

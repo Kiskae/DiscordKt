@@ -1,0 +1,185 @@
+{
+  "guild_id": "105813112795471872",
+  "emojis": [
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogLOVE",
+      "managed": true,
+      "id": "130369583948365824"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogWatson",
+      "managed": true,
+      "id": "129394722086191104"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogSherlock",
+      "managed": true,
+      "id": "129394724103520256"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogMad",
+      "managed": true,
+      "id": "129394726490210304"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogSam",
+      "managed": true,
+      "id": "129394727379271680"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogSwears",
+      "managed": true,
+      "id": "129394729761767424"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogHi",
+      "managed": true,
+      "id": "129394730504028160"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogMango",
+      "managed": true,
+      "id": "129394730504028161"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogSwadloon",
+      "managed": true,
+      "id": "138493487078309888"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogHype",
+      "managed": true,
+      "id": "129394732941049857"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogMagical",
+      "managed": true,
+      "id": "129394733591035904"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogDrink",
+      "managed": true,
+      "id": "129394734245478400"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogRIP",
+      "managed": true,
+      "id": "129394734769635328"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogButtbee",
+      "managed": true,
+      "id": "129394734769635329"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogWhut",
+      "managed": true,
+      "id": "144248086858956800"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogHappy",
+      "managed": true,
+      "id": "129394738171215872"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogCoffeh",
+      "managed": true,
+      "id": "129394738171215873"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogFoxy",
+      "managed": true,
+      "id": "129394738724995072"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogFood",
+      "managed": true,
+      "id": "129394739727302657"
+    },
+    {
+      "roles": [
+        "106477692932587520"
+      ],
+      "require_colons": false,
+      "name": "doogCool",
+      "managed": true,
+      "id": "129394740448854016"
+    }
+  ]
+}

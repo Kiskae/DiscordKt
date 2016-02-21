@@ -1,10 +1,10 @@
 package net.serverpeon.discord.internal.ws.client
 
 import com.google.gson.Gson
-import net.serverpeon.discord.internal.ws.data.event.Channels
-import net.serverpeon.discord.internal.ws.data.event.Guilds
-import net.serverpeon.discord.internal.ws.data.event.Messages
-import net.serverpeon.discord.internal.ws.data.event.Misc
+import net.serverpeon.discord.internal.ws.data.inbound.Channels
+import net.serverpeon.discord.internal.ws.data.inbound.Guilds
+import net.serverpeon.discord.internal.ws.data.inbound.Messages
+import net.serverpeon.discord.internal.ws.data.inbound.Misc
 
 internal object DiscordHandlers {
     fun create(gson: Gson): MessageTranslator {
@@ -43,6 +43,9 @@ internal object DiscordHandlers {
             registerType("READY") { Misc.Ready(it.parse()) }
             registerType("TYPING_START") { it.parse<Misc.TypingStart>() }
             registerType("PRESENCE_UPDATE") { it.parse<Misc.PresenceUpdate>() }
+            registerType("GUILD_EMOJIS_UPDATE") { it.parse<Guilds.EmojiUpdate>() }
+            registerType("GUILD_INTEGRATIONS_UPDATE") { it.parse<Guilds.IntegrationsUpdate>() }
+            registerType("VOICE_STATE_UPDATE") { Misc.VoiceStateUpdate(it.parse()) }
         }.build()
     }
 }

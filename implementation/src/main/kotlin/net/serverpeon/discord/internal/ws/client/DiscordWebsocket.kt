@@ -4,9 +4,9 @@ import com.google.gson.Gson
 import net.serverpeon.discord.internal.createLogger
 import net.serverpeon.discord.internal.kDebug
 import net.serverpeon.discord.internal.kTrace
-import net.serverpeon.discord.internal.ws.data.event.Misc
-import net.serverpeon.discord.internal.ws.data.message.ConnectMsg
-import net.serverpeon.discord.internal.ws.data.message.KeepaliveMsg
+import net.serverpeon.discord.internal.ws.data.inbound.Misc
+import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
+import net.serverpeon.discord.internal.ws.data.outbound.KeepaliveMsg
 import org.glassfish.tyrus.client.ClientManager
 import rx.Observable
 import rx.Subscriber
