@@ -33,7 +33,6 @@ object DiscordWebsocket {
             // ReadyEvent is the second event
             connectableRx.skip(1).first().flatMap {
                 check(it.event is Misc.Ready)
-                
                 initKeepAlive(it, gson)
             }.connectTo(sub)
 

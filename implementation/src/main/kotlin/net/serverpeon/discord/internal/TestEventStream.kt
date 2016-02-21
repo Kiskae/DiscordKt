@@ -4,7 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.internal.bind.TypeAdapters
 import net.serverpeon.discord.internal.rest.adapters.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
-import net.serverpeon.discord.internal.rest.rx
+import net.serverpeon.discord.internal.rest.rxObservable
 import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.model.DiscordId
@@ -29,7 +29,7 @@ fun main(args: Array<String>) {
     val latch = CountDownLatch(1)
     val logger = api.createLogger()
 
-    api.Gateway.wsEndpoint().rx().subscribe { endpoint ->
+    api.Gateway.wsEndpoint().rxObservable().flatMap { endpoint ->
         DiscordWebsocket.create(ConnectMsg(
                 token = token,
                 v = 3,
@@ -44,13 +44,14 @@ fun main(args: Array<String>) {
                 compress = true
         ), endpoint.url, gson).doAfterTerminate {
             latch.countDown()
-        }.subscribe({
-            logger.kDebug { "${it.event}" }
-        }, {
-            logger.kDebug(it) { "Error in event stream" }
-        }, {
-            logger.kDebug { "Event stream closed" }
-        })
-    }
+        }
+    }.subscribe({
+        logger.kDebug { "[${latch.count}] ${it.event}" }
+    }, {
+        logger.kDebug(it) { "Error in event stream" }
+    }, {
+        logger.kDebug { "Event stream closed" }
+    })
+
     latch.await()
 }
