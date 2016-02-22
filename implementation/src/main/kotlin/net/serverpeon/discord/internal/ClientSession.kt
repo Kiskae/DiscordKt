@@ -16,9 +16,13 @@ import net.serverpeon.discord.model.Guild
 import rx.Completable
 import rx.Observable
 import rx.Single
+import rx.Subscription
 import rx.observables.ConnectableObservable
 import rx.subjects.BehaviorSubject
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 class ClientSession(apiSource: Single<ApiWrapper>,
                     gson: Gson,
@@ -29,7 +33,6 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         private const val DISCORD_API_VERSION = 3
     }
 
-    private val closeFuture: CompletableFuture<Void> = CompletableFuture()
     private val apiWrapper: Observable<ApiWrapper> = BehaviorSubject.create<ApiWrapper>().apply {
         // Pass through the value and any potential errors, but not the complete() (Shuts down subject)
         apiSource.subscribe({
@@ -65,14 +68,35 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         }
     }.publish()
 
+    //Fields for tracking the current state of the client
+    private val closeFuture: CompletableFuture<Void> = CompletableFuture()
+    private val eventStreamSubscription: DoOnce<Subscription> = DoOnce {
+        eventStream.connect()
+    }
+    private val eventListener: DoOnce<EventPublisher> = DoOnce {
+        EventPublisher(eventBus).apply {
+            eventStream.subscribe(this)
+        }
+    }
+    private val sessionLock: Lock = ReentrantLock()
+
     init {
         // We consider receiving the Ready event an indicator that the connection was successful
         // So we reset the retry handler.
         eventStream.filter {
             it.event is Misc.Ready
-        }.subscribe {
+        }.subscribe({
             retryHandler.reset()
-        }
+        }, {
+            // Fail the closeFuture if a failure manages to make it through the event stream
+            closeFuture.completeExceptionally(it)
+        }, {
+            // If the event stream completes, just complete the closeFuture as well
+            closeFuture.complete(null)
+        })
+
+        // If the event-stream hasn't been initialized this is also a failure condition
+        apiWrapper.doOnError { closeFuture.completeExceptionally(it) }.subscribe()
     }
 
     override fun guilds(): Observable<Guild> {
@@ -81,6 +105,29 @@ class ClientSession(apiSource: Single<ApiWrapper>,
 
     override fun eventBus(): EventBus {
         return eventBus
+    }
+
+    override fun startEmittingEvents() {
+        sessionLock.withLock {
+            if (!closeFuture.isDone) {
+                eventListener.getOrInit()
+                // Activate the event stream
+                eventStreamSubscription.getOrInit()
+            }
+        }
+    }
+
+    // Ensures the eventStream is initialized so we have access to the model
+    // Failure conditions will result in a failed completable
+    private fun ensureSafeModelAccess(): Completable {
+        return sessionLock.withLock {
+            if (!closeFuture.isDone) {
+                eventStreamSubscription.getOrInit() //Ensure the event-stream is connected
+                Completable.complete()
+            } else {
+                closeFuture().doOnTerminate { throw DiscordClient.AccessAfterCloseException() }
+            }
+        }
     }
 
     override fun logout(): Completable {
@@ -101,13 +148,22 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         return internalShutdown()
     }
 
-    override fun closeFuture(): Completable {
-        return closeFuture.toObservable().toCompletable()
+    private fun internalShutdown(): Completable {
+        return sessionLock.withLock {
+            if (!closeFuture.isDone) {
+                closeFuture.complete(null)
+                if (eventStreamSubscription.invoked) {
+                    // Unsubscribe closes the underlying websocket
+                    eventStreamSubscription.getOrInit().unsubscribe()
+                }
+            }
+
+            // Refer to closeFuture() for the final result
+            closeFuture()
+        }
     }
 
-    private fun internalShutdown(): Completable {
-        //TODO: set atomicboolean to ensure it cannot be used afterwards
-        //TODO: add system to shut down active event stream
-        return Completable.complete()
+    override fun closeFuture(): Completable {
+        return closeFuture.toObservable().toCompletable()
     }
 }

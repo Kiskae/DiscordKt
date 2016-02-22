@@ -10,6 +10,11 @@ interface DiscordClient : AutoCloseable {
     fun guilds(): Observable<Guild>
 
     /**
+     *
+     */
+    fun startEmittingEvents()
+
+    /**
      * Invalidates the internal session token and shuts down this client.
      *
      * After completion this client cannot be used to access Discord.
@@ -34,13 +39,12 @@ interface DiscordClient : AutoCloseable {
      */
     fun eventBus(): EventBus
 
-    companion object {
-        private val builderLoader = ServiceLoader.load(DiscordClient.Builder::class.java)
-
-        fun newBuilder(): DiscordClient.Builder {
-            return builderLoader.firstOrNull() ?: throw IllegalStateException("DiscordClient implementation not found")
-        }
-    }
+    /**
+     * Exception thrown if data is requested from the client after failure or shutdown.
+     */
+    class AccessAfterCloseException : RuntimeException(
+            "Attempted to access the Discord model after the client was shutdown or has otherwise failed"
+    )
 
     interface Builder {
         /**
@@ -106,5 +110,13 @@ interface DiscordClient : AutoCloseable {
          * Construct the client
          */
         fun build(): DiscordClient
+    }
+
+    companion object {
+        private val builderLoader = ServiceLoader.load(DiscordClient.Builder::class.java)
+
+        fun newBuilder(): DiscordClient.Builder {
+            return builderLoader.firstOrNull() ?: throw IllegalStateException("DiscordClient implementation not found")
+        }
     }
 }
