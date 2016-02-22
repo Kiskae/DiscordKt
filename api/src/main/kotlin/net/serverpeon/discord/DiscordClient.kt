@@ -112,11 +112,19 @@ interface DiscordClient : AutoCloseable {
         fun build(): DiscordClient
     }
 
+    interface BuilderProvider {
+        /**
+         * Constructs a new client builder, used in [Companion]
+         */
+        fun newBuilder(): Builder
+    }
+
     companion object {
-        private val builderLoader = ServiceLoader.load(DiscordClient.Builder::class.java)
+        private val builderProviderLoader = ServiceLoader.load(BuilderProvider::class.java)
 
         fun newBuilder(): DiscordClient.Builder {
-            return builderLoader.firstOrNull() ?: throw IllegalStateException("DiscordClient implementation not found")
+            return builderProviderLoader.firstOrNull()?.newBuilder()
+                    ?: throw IllegalStateException("DiscordClient implementation not found")
         }
     }
 }

@@ -25,6 +25,12 @@ class ClientBuilder : DiscordClient.Builder {
         private const val DEFAULT_SEQUENTIAL_RETRIES = 3
     }
 
+    class Provider : DiscordClient.BuilderProvider {
+        override fun newBuilder(): DiscordClient.Builder {
+            return ClientBuilder()
+        }
+    }
+
     private var tokenProvider: ((ApiWrapper) -> Single<String>)? = null
     private var eventBus: EventBus? = null
     private var okHttpClient: OkHttpClient? = null
