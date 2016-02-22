@@ -7,8 +7,10 @@ import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
 import net.serverpeon.discord.internal.rest.rxObservable
+import net.serverpeon.discord.internal.ws.RetryHandler
 import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.Event
+import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.toObservable
 import net.serverpeon.discord.model.Guild
@@ -26,6 +28,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         private const val DISCORD_API_VERSION = 3
     }
 
+    private val retryHandler = RetryHandler() //TODO: make amount of retries configurable
     private val closeFuture: CompletableFuture<Void> = CompletableFuture()
     private val apiWrapper: Observable<ApiWrapper> = BehaviorRelay.create<ApiWrapper>().apply {
         apiSource.subscribe(this)
@@ -50,9 +53,22 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                     ),
                     endPoint.url,
                     gson
-            )
+            ).retry(retryHandler).onErrorResumeNext {
+                // This will ensure the original exception is thrown if retries fail
+                Observable.error(retryHandler.originalException)
+            }
         }
     }.publish()
+
+    init {
+        // We consider receiving the Ready event an indicator that the connection was successful
+        // So we reset the retry handler.
+        eventStream.filter {
+            it.event is Misc.Ready
+        }.subscribe {
+            retryHandler.reset()
+        }
+    }
 
     override fun guilds(): Observable<Guild> {
         throw UnsupportedOperationException()
