@@ -1,5 +1,7 @@
 package net.serverpeon.discord.internal.ws.client
 
+import net.serverpeon.discord.internal.createLogger
+import net.serverpeon.discord.internal.kTrace
 import rx.Subscriber
 import rx.subscriptions.Subscriptions
 import java.io.InputStream
@@ -9,9 +11,12 @@ import java.util.zip.InflaterInputStream
 import javax.websocket.*
 
 internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber: Subscriber<in Event>) : Endpoint() {
+    private val logger = createLogger()
+
     override fun onOpen(session: Session, config: EndpointConfig) {
         // Allow closing the connection with Rx
         subscriber.add(Subscriptions.create {
+            logger.kTrace { "Closing websocket session due to Rx.unsubscribe()" }
             session.close(
                     CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Subscriber.unsubscribe() called")
             )
@@ -44,6 +49,7 @@ internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber
     object StartEvent
 
     override fun onClose(session: Session, closeReason: CloseReason) {
+        logger.kTrace { "Endpoint[${session.requestURI}] closed: $closeReason" }
         if (closeReason.closeCode != CloseReason.CloseCodes.NORMAL_CLOSURE) {
             subscriber.onError(IllegalStateException(closeReason.reasonPhrase))
         } else {
@@ -52,6 +58,7 @@ internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber
     }
 
     override fun onError(session: Session, thr: Throwable) {
+        logger.kTrace(thr) { "Endpoint[${session.requestURI}] encountered an exception" }
         subscriber.onError(thr)
     }
 }
