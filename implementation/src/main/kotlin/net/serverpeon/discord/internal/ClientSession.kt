@@ -23,12 +23,12 @@ import java.util.concurrent.CompletableFuture
 class ClientSession(apiSource: Single<ApiWrapper>,
                     gson: Gson,
                     private val eventBus: EventBus,
-                    metadata: DiscordClient.Builder.UserMetadata) : DiscordClient {
+                    metadata: DiscordClient.Builder.UserMetadata,
+                    private val retryHandler: RetryHandler) : DiscordClient {
     companion object {
         private const val DISCORD_API_VERSION = 3
     }
 
-    private val retryHandler = RetryHandler() //TODO: make amount of retries configurable
     private val closeFuture: CompletableFuture<Void> = CompletableFuture()
     private val apiWrapper: Observable<ApiWrapper> = BehaviorRelay.create<ApiWrapper>().apply {
         apiSource.subscribe(this)

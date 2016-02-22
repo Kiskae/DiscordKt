@@ -66,7 +66,7 @@ interface DiscordClient : AutoCloseable {
         /**
          * DiscordKt will emit events to the given EventBus instead of creating an EventBus itself.
          *
-         * @property eventBus The [EventBus] to use for event publishing
+         * @param eventBus The [EventBus] to use for event publishing
          * @return Fluent builder
          */
         fun eventBus(eventBus: EventBus): Builder
@@ -74,11 +74,20 @@ interface DiscordClient : AutoCloseable {
         /**
          * Specify the metadata that should be sent to Discord with requests.
          *
-         * @property metadata The desired metadata
+         * @param metadata The desired metadata
          * @return Fluent builder
          */
         fun metadata(metadata: UserMetadata): Builder
 
+        /**
+         * Specify the number of times the client will attempt to reconnect after a disconnect.
+         *
+         * If the client successfully reconnects between retries then the try counter is reset.
+         *
+         * @param sequentialRetries Amount of times the client should attempt to reconnect.
+         * @return Fluent builder
+         */
+        fun retries(sequentialRetries: Int): Builder
 
         /**
          * @property userAgent String identifying the user, defaults to "DiscordKt <Implementation Version>"

@@ -10,6 +10,7 @@ import net.serverpeon.discord.internal.rest.adapters.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
 import net.serverpeon.discord.internal.rest.rx
+import net.serverpeon.discord.internal.ws.RetryHandler
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PermissionSet
 import okhttp3.OkHttpClient
@@ -21,6 +22,7 @@ import java.time.ZonedDateTime
 class ClientBuilder : DiscordClient.Builder {
     companion object {
         private val DISCORDKT_VERSION = ClientBuilder::class.java.`package`.implementationVersion ?: "DEBUG"
+        private const val DEFAULT_SEQUENTIAL_RETRIES = 3
     }
 
     private var tokenProvider: ((ApiWrapper) -> Single<String>)? = null
@@ -28,6 +30,7 @@ class ClientBuilder : DiscordClient.Builder {
     private var okHttpClient: OkHttpClient? = null
     private var metadata: UserMetadata = UserMetadata("DiscordKt $DISCORDKT_VERSION")
     private var gson: Gson = setupGson().create()
+    private var retries = DEFAULT_SEQUENTIAL_RETRIES
 
     override fun login(email: String, password: String): DiscordClient.Builder {
         this.tokenProvider = { api ->
@@ -55,8 +58,19 @@ class ClientBuilder : DiscordClient.Builder {
         return this
     }
 
+    override fun retries(sequentialRetries: Int): DiscordClient.Builder {
+        this.retries = sequentialRetries
+        return this
+    }
+
     override fun build(): DiscordClient {
-        return ClientSession(createApiWrapper(), this.gson, this.eventBus ?: EventBus(), this.metadata)
+        return ClientSession(
+                createApiWrapper(),
+                this.gson,
+                this.eventBus ?: EventBus(),
+                this.metadata,
+                RetryHandler(this.retries)
+        )
     }
 
     // Implementation extension
