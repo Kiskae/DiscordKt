@@ -32,6 +32,7 @@ data class PermissionSet internal constructor(private val permissions: EnumSet<P
     companion object {
         val ZERO = PermissionSet(EnumSet.noneOf(Permission::class.java))
 
+        @JvmStatic
         fun create(permissions: Collection<Permission>): PermissionSet {
             return if (permissions.isEmpty()) {
                 ZERO
