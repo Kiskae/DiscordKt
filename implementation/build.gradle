@@ -14,7 +14,6 @@ dependencies {
     compile 'org.glassfish.tyrus:tyrus-container-grizzly-client:1.12'
 
     // Libraries
-    compile group: 'com.google.guava', name: 'guava', version: '19.0'
     compile 'com.jakewharton.rxrelay:rxrelay:1.0.0'
 
     // Testing
