@@ -3,7 +3,7 @@ package net.serverpeon.discord.model
 import rx.Observable
 import rx.Single
 
-data class DiscordId<T : DiscordId.Identifiable<T>>(val id: String) {
+data class DiscordId<T : DiscordId.Identifiable<T>>(val repr: String) {
     fun <A : T> findIn(source: Observable<A>): Single<A> {
         return source.first { it.id == this }.toSingle()
     }

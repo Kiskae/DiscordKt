@@ -7,7 +7,7 @@ import net.serverpeon.discord.model.DiscordId
 
 object DiscordIdAdapter : TypeAdapter<DiscordId<*>>() {
     override fun write(writer: JsonWriter, value: DiscordId<*>) {
-        writer.value(value.id)
+        writer.value(value.repr)
     }
 
     override fun read(reader: JsonReader): DiscordId<*> {
