@@ -16,6 +16,24 @@ interface DiscordClient : AutoCloseable {
      */
     fun logout(): Completable
 
+    /**
+     * Like [close], but does not block the current thread.
+     */
+    fun closeAsync(): Completable
+
+    /**
+     * Returns a completable that will resolve when the client eventually shuts down.
+     * This does **NOT** close the client itself.
+     *
+     * Modelled after Netty's closeFuture() feature: [Channel#closeFuture()](http://netty.io/4.0/api/io/netty/channel/Channel.html#closeFuture())
+     */
+    fun closeFuture(): Completable
+
+    /**
+     * Returns the event bus on which this client will publish events.
+     */
+    fun eventBus(): EventBus
+
     companion object {
         private val builderLoader = ServiceLoader.load(DiscordClient.Builder::class.java)
 
@@ -45,8 +63,17 @@ interface DiscordClient : AutoCloseable {
          */
         fun token(token: String): Builder
 
+        /**
+         * DiscordKt will emit events to the given EventBus instead of creating an EventBus itself.
+         *
+         * @property eventBus The [EventBus] to use for event publishing
+         * @return Fluent builder
+         */
         fun eventBus(eventBus: EventBus): Builder
 
+        /**
+         * Construct the client
+         */
         fun build(): DiscordClient
     }
 }

@@ -8,13 +8,16 @@ import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
 import net.serverpeon.discord.internal.rest.rxObservable
 import net.serverpeon.discord.internal.ws.client.Event
+import net.serverpeon.discord.internal.ws.data.toObservable
 import net.serverpeon.discord.model.Guild
 import rx.Completable
 import rx.Observable
 import rx.Single
 import rx.observables.ConnectableObservable
+import java.util.concurrent.CompletableFuture
 
 class ClientSession(apiSource: Single<ApiWrapper>, gson: Gson, eventBus: EventBus) : DiscordClient {
+    private val closeFuture: CompletableFuture<Void> = CompletableFuture()
     private val apiWrapper: Observable<ApiWrapper> = BehaviorRelay.create { sub ->
         apiSource.subscribe(sub)
     }
@@ -35,6 +38,10 @@ class ClientSession(apiSource: Single<ApiWrapper>, gson: Gson, eventBus: EventBu
         throw UnsupportedOperationException()
     }
 
+    override fun eventBus(): EventBus {
+        throw UnsupportedOperationException()
+    }
+
     override fun logout(): Completable {
         return internalShutdown().andThen(apiWrapper).map {
             check(it.token != null) { "logout() called twice" }
@@ -47,6 +54,14 @@ class ClientSession(apiSource: Single<ApiWrapper>, gson: Gson, eventBus: EventBu
     override fun close() {
         // Block until shutdown
         internalShutdown().await()
+    }
+
+    override fun closeAsync(): Completable {
+        return internalShutdown()
+    }
+
+    override fun closeFuture(): Completable {
+        return closeFuture.toObservable().toCompletable()
     }
 
     private fun internalShutdown(): Completable {
