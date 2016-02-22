@@ -2,7 +2,6 @@ package net.serverpeon.discord.internal
 
 import com.google.common.eventbus.EventBus
 import com.google.gson.Gson
-import com.jakewharton.rxrelay.BehaviorRelay
 import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
@@ -18,6 +17,7 @@ import rx.Completable
 import rx.Observable
 import rx.Single
 import rx.observables.ConnectableObservable
+import rx.subjects.BehaviorSubject
 import java.util.concurrent.CompletableFuture
 
 class ClientSession(apiSource: Single<ApiWrapper>,
@@ -30,8 +30,13 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     private val closeFuture: CompletableFuture<Void> = CompletableFuture()
-    private val apiWrapper: Observable<ApiWrapper> = BehaviorRelay.create<ApiWrapper>().apply {
-        apiSource.subscribe(this)
+    private val apiWrapper: Observable<ApiWrapper> = BehaviorSubject.create<ApiWrapper>().apply {
+        // Pass through the value and any potential errors, but not the complete() (Shuts down subject)
+        apiSource.subscribe({
+            onNext(it)
+        }, {
+            onError(it)
+        })
     }.first()
     private val eventStream: ConnectableObservable<Event> = apiWrapper.flatMap {
         it.Gateway.wsEndpoint().rxObservable()
