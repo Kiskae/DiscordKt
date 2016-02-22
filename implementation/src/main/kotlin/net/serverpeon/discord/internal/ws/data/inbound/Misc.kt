@@ -15,7 +15,14 @@ interface Misc {
                               val roles: List<DiscordId<Role>>,
                               val guild_id: DiscordId<Guild>,
                               val game: Playing?) {
-        data class UserRef(val id: DiscordId<User>)
+        /**
+         * Includes username, discriminator and avatar if one of those changes (or it seems at random or places)
+         * Should be used to update the user model
+         */
+        data class UserRef(val id: DiscordId<User>,
+                           val username: String?,
+                           val discriminator: String?,
+                           val avatar: String?)
         data class Playing(val name: String)
     }
 
