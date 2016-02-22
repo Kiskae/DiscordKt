@@ -164,12 +164,14 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     // Ensures the eventStream is initialized so we have access to the model
     // Failure conditions will result in a failed completable
     private fun ensureSafeModelAccess(): Completable {
-        return sessionLock.withLock {
-            if (!closeFuture.isDone) {
-                eventStreamSubscription.getOrInit() //Ensure the event-stream is connected
-                Completable.complete()
-            } else {
-                closeFuture().doOnTerminate { throw DiscordClient.AccessAfterCloseException() }
+        return Completable.defer {
+            sessionLock.withLock {
+                if (!closeFuture.isDone) {
+                    eventStreamSubscription.getOrInit() //Ensure the event-stream is connected
+                    Completable.complete()
+                } else {
+                    closeFuture().doOnTerminate { throw DiscordClient.AccessAfterCloseException() }
+                }
             }
         }
     }
