@@ -64,7 +64,9 @@ data class ReadyEventModel(val v: Int,
                              val large: Boolean,
                              val channels: List<ChannelModel>) {
 
-        data class Presence(val user: Ref, val status: String, val game: Game) {
+        data class Presence(val user: Ref,
+                            val status: Misc.PresenceUpdate.Status,
+                            val game: Game) {
             data class Ref(val id: DiscordId<User>)
             data class Game(val name: String)
         }

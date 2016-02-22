@@ -20,10 +20,13 @@ class UserCache {
     }
 
     fun retrieve(id: DiscordId<User>, node: WhoamiNode): UserNode {
-        return cache[id, { node }].apply {
+        return cache[id, { node }].let {
             // Ensure we have our whoami model over a plain user model
-            if (this !is WhoamiNode) {
+            if (it !is WhoamiNode) {
                 cache.put(id, node)
+                node
+            } else {
+                it
             }
         }
     }

@@ -8,4 +8,4 @@ data class SelfModel(val verified: Boolean,
                      val id: DiscordId<User>,
                      val email: String,
                      val discriminator: String,
-                     val avatar: String)
+                     val avatar: DiscordId<User.Avatar>?)
