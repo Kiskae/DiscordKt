@@ -7,10 +7,8 @@ import net.serverpeon.discord.model.Guild
 
 class DiscordNode(val api: ApiWrapper) : EventProcessor {
     val userCache = UserCache()
-    private val internalGuilds = createIdMapRelay<Guild, GuildNode>()
-    val guilds = internalGuilds.first()
-    private val internalPrivateChannels = createIdMapRelay<Channel, ChannelNode>()
-    val privateChannels = internalGuilds.first()
+    var guilds = createEmptyMap<Guild, GuildNode>()
+    var privateChannels = createEmptyMap<Channel, ChannelNode>()
 
     override fun acceptEvent(event: Any) {
         //TODO: distribute events to relevant locations
@@ -21,17 +19,19 @@ class DiscordNode(val api: ApiWrapper) : EventProcessor {
         fun from(data: ReadyEventModel, api: ApiWrapper): DiscordNode {
             val primaryNode = DiscordNode(api)
 
+            //SELF
+            val whoami = primaryNode.userCache.retrieve(
+                    data.user.id,
+                    WhoamiNode.from(data.user, primaryNode)
+            ) as WhoamiNode
+
             //GUILDS
             val guilds = data.guilds.map { GuildNode.from(it, primaryNode) }
-            primaryNode.internalGuilds.call(guilds.toImmutableIdMap())
-
-            //SELF
-            val whoami = WhoamiNode.from(data.user, primaryNode)
-            //TODO: how does this need to be updated....
+            primaryNode.guilds = guilds.toImmutableIdMap()
 
             //PRIVATE_CHANNELS
             val privateChannels = data.private_channels.map { ChannelNode.from(it, primaryNode) }
-            primaryNode.internalPrivateChannels.call(privateChannels.toImmutableIdMap())
+            primaryNode.privateChannels = privateChannels.toImmutableIdMap()
 
             //TODO: SETTINGS?
 

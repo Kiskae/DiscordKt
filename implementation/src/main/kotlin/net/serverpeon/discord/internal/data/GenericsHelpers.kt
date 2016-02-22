@@ -8,6 +8,10 @@ internal fun <T : DiscordId.Identifiable<T>, G : T> createIdMapRelay(): Behavior
     return BehaviorRelay.create()
 }
 
+internal fun <T : DiscordId.Identifiable<T>, G : T> createEmptyMap(): Map<DiscordId<T>, G> {
+    return ImmutableMap.of()
+}
+
 internal fun <T : DiscordId.Identifiable<T>, G : T> Iterable<G>.toImmutableIdMap(): Map<DiscordId<T>, G> {
     return ImmutableMap.builder<DiscordId<T>, G>().apply {
         forEach { put(it.id, it) } // Associate id to value
