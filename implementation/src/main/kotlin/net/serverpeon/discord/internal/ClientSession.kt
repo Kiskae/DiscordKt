@@ -77,7 +77,11 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
     private val eventListener: DoOnce<EventPublisher> = DoOnce {
         EventPublisher(eventBus).apply {
-            eventStream.subscribe(this)
+            eventStream.flatMap { event ->
+                model.map { model ->
+                    this.call(event, model)
+                }
+            }.subscribe()
         }
     }
     private val sessionLock: Lock = ReentrantLock()
