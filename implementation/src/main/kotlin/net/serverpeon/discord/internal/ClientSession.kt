@@ -2,7 +2,9 @@ package net.serverpeon.discord.internal
 
 import com.google.common.eventbus.EventBus
 import com.google.gson.Gson
+import com.jakewharton.rxrelay.BehaviorRelay
 import net.serverpeon.discord.DiscordClient
+import net.serverpeon.discord.internal.data.DiscordNode
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
 import net.serverpeon.discord.internal.rest.rxObservable
@@ -80,6 +82,26 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
     private val sessionLock: Lock = ReentrantLock()
 
+    private val model = BehaviorRelay.create<DiscordNode>().apply {
+        // Set up connection to the eventStream for updates to the model
+        eventStream.map { it.event }.flatMap { event ->
+            if (event is Misc.Ready) {
+                // If we receive a Ready event, generate a new model
+                apiWrapper.map { api ->
+                    val newModel = DiscordNode.from(event.data, api)
+                    this.call(newModel) // Update the model
+                    newModel
+                }
+            } else {
+                // Otherwise we use the current version of the model
+                this
+            }.map { model ->
+                // Pass the event to the model
+                model.acceptEvent(event)
+            }
+        }.subscribe()
+    }.first()
+
     init {
         // We consider receiving the Ready event an indicator that the connection was successful
         // So we reset the retry handler.
@@ -100,7 +122,11 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun guilds(): Observable<Guild> {
-        throw UnsupportedOperationException()
+        return ensureSafeModelAccess().andThen(model).flatMap {
+            it.guilds
+        }.flatMapIterable {
+            it.values
+        }
     }
 
     override fun eventBus(): EventBus {
