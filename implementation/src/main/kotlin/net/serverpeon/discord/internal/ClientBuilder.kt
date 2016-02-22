@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.internal.bind.TypeAdapters
 import net.serverpeon.discord.DiscordClient
+import net.serverpeon.discord.DiscordClient.Builder.UserMetadata
 import net.serverpeon.discord.internal.rest.adapters.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
@@ -16,12 +17,16 @@ import rx.Single
 import java.awt.Color
 import java.time.Duration
 import java.time.ZonedDateTime
-import kotlin.properties.Delegates
 
 class ClientBuilder : DiscordClient.Builder {
-    private var tokenProvider: (ApiWrapper) -> Single<String> by Delegates.notNull()
+    companion object {
+        private val DISCORDKT_VERSION = ClientBuilder::class.java.`package`.implementationVersion ?: "DEBUG"
+    }
+
+    private var tokenProvider: ((ApiWrapper) -> Single<String>)? = null
     private var eventBus: EventBus? = null
-    private var okHttpClient: OkHttpClient = OkHttpClient()
+    private var okHttpClient: OkHttpClient? = null
+    private var metadata: UserMetadata = UserMetadata("DiscordKt $DISCORDKT_VERSION")
     private var gson: Gson = setupGson().create()
 
     override fun login(email: String, password: String): DiscordClient.Builder {
@@ -45,6 +50,15 @@ class ClientBuilder : DiscordClient.Builder {
         return this
     }
 
+    override fun metadata(metadata: UserMetadata): DiscordClient.Builder {
+        this.metadata = metadata
+        return this
+    }
+
+    override fun build(): DiscordClient {
+        return ClientSession(createApiWrapper(), this.gson, this.eventBus ?: EventBus(), this.metadata)
+    }
+
     // Implementation extension
     fun okHttp(client: OkHttpClient): ClientBuilder {
         this.okHttpClient = client
@@ -57,12 +71,10 @@ class ClientBuilder : DiscordClient.Builder {
         return this
     }
 
-    override fun build(): DiscordClient {
-        return ClientSession(createApiWrapper(), this.gson, this.eventBus ?: EventBus())
-    }
-
     private fun createApiWrapper(): Single<ApiWrapper> {
-        return ApiWrapper(okHttpClient, gson).let {
+        val tokenProvider = this.tokenProvider ?: throw IllegalStateException("Please call login() or token() to configure the authentication method before build()")
+
+        return ApiWrapper(okHttpClient ?: setupOkHttp(metadata), gson).let {
             tokenProvider(it).map { token ->
                 it.token = token // Set token in ApiWrapper
                 it
@@ -78,5 +90,13 @@ class ClientBuilder : DiscordClient.Builder {
             registerTypeAdapter(ZonedDateTime::class.java, ZonedDateTimeAdapter.nullSafe())
             registerTypeAdapter(PermissionSet::class.java, PermissionSetAdapter.nullSafe())
         }
+    }
+
+    private fun setupOkHttp(metadata: UserMetadata): OkHttpClient {
+        return OkHttpClient.Builder().addInterceptor { chain ->
+            chain.proceed(chain.request().let {
+                it.newBuilder().addHeader("User-Agent", metadata.userAgent).build()
+            })
+        }.build()
     }
 }

@@ -7,7 +7,9 @@ import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
 import net.serverpeon.discord.internal.rest.rxObservable
+import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.Event
+import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.toObservable
 import net.serverpeon.discord.model.Guild
 import rx.Completable
@@ -16,21 +18,39 @@ import rx.Single
 import rx.observables.ConnectableObservable
 import java.util.concurrent.CompletableFuture
 
-class ClientSession(apiSource: Single<ApiWrapper>, gson: Gson, eventBus: EventBus) : DiscordClient {
-    private val closeFuture: CompletableFuture<Void> = CompletableFuture()
-    private val apiWrapper: Observable<ApiWrapper> = BehaviorRelay.create { sub ->
-        apiSource.subscribe(sub)
+class ClientSession(apiSource: Single<ApiWrapper>,
+                    gson: Gson,
+                    private val eventBus: EventBus,
+                    metadata: DiscordClient.Builder.UserMetadata) : DiscordClient {
+    companion object {
+        private const val DISCORD_API_VERSION = 3
     }
+
+    private val closeFuture: CompletableFuture<Void> = CompletableFuture()
+    private val apiWrapper: Observable<ApiWrapper> = BehaviorRelay.create<ApiWrapper>().apply {
+        apiSource.subscribe(this)
+    }.first()
     private val eventStream: ConnectableObservable<Event> = apiWrapper.flatMap {
         it.Gateway.wsEndpoint().rxObservable()
     }.flatMap { endPoint ->
         apiWrapper.flatMap { apiWrapper ->
-            // DiscordWebsocket.create(
-            // null, //TODO: set info
-            // endPoint.url,
-            // gson
-            // ).retry() //TODO: implement retry policy
-            Observable.never<Event>()
+            DiscordWebsocket.create(
+                    ConnectMsg(
+                            token = apiWrapper.token!!,
+                            v = DISCORD_API_VERSION,
+                            properties = ConnectMsg.Properties(
+                                    operatingSystem = metadata.operatingSystem,
+                                    device = metadata.device,
+                                    browser = metadata.userAgent,
+                                    referrer = "",
+                                    referrerDomain = ""
+                            ),
+                            large_threshold = 100,
+                            compress = true
+                    ),
+                    endPoint.url,
+                    gson
+            )
         }
     }.publish()
 
@@ -39,7 +59,7 @@ class ClientSession(apiSource: Single<ApiWrapper>, gson: Gson, eventBus: EventBu
     }
 
     override fun eventBus(): EventBus {
-        throw UnsupportedOperationException()
+        return eventBus
     }
 
     override fun logout(): Completable {

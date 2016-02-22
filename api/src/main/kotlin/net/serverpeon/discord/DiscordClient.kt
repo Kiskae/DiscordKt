@@ -72,6 +72,28 @@ interface DiscordClient : AutoCloseable {
         fun eventBus(eventBus: EventBus): Builder
 
         /**
+         * Specify the metadata that should be sent to Discord with requests.
+         *
+         * @property metadata The desired metadata
+         * @return Fluent builder
+         */
+        fun metadata(metadata: UserMetadata): Builder
+
+
+        /**
+         * @property userAgent String identifying the user, defaults to "DiscordKt <Implementation Version>"
+         * @property device String representing the type of device that is running the client, defaults to
+         *                  `System.getProperty("os.arch")`
+         * @property operatingSystem String representing the operating system version, defaults to
+         *                           `"${System.getProperty("os.name")} ${System.getProperty("os.version")}"`
+         */
+        data class UserMetadata @JvmOverloads constructor(
+                val userAgent: String,
+                val device: String = System.getProperty("os.arch"),
+                val operatingSystem: String = "${System.getProperty("os.name")} ${System.getProperty("os.version")}"
+        )
+
+        /**
          * Construct the client
          */
         fun build(): DiscordClient

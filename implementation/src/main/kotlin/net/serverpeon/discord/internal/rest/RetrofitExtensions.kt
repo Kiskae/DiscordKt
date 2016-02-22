@@ -24,7 +24,7 @@ fun <T> Call<T>.rxObservable(): Observable<T> {
 class ResponseException(
         val call: Call<*>,
         val response: Response<*>
-) : RuntimeException("Call [$call] failed: [$response]")
+) : RuntimeException("Call [${call.request().url()}] failed: [${response.message()}]")
 
 private fun <T> Call<T>.internalToRx(): Observable<Response<T>> {
     return Observable.create { sub ->
@@ -57,5 +57,4 @@ private class RxCallback<T>(val sub: Subscriber<in Response<T>>) : Callback<T> {
             sub.onError(ResponseException(call, response))
         }
     }
-
 }
