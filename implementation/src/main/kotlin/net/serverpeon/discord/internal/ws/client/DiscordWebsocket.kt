@@ -43,7 +43,7 @@ object DiscordWebsocket {
                 logger.kDebug { "Event stream initialized" }
                 sub.add(subscription)
             }
-        }.publish().refCount()
+        }
     }
 
     private fun initKeepAlive(e: Event, gson: Gson): Observable<Void> {

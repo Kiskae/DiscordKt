@@ -46,7 +46,7 @@ fun main(args: Array<String>) {
             latch.countDown()
         }
     }.subscribe({
-        logger.kDebug { "[${latch.count}] ${it.event}" }
+        logger.kDebug { "${it.event}" }
     }, {
         logger.kDebug(it) { "Error in event stream" }
     }, {
