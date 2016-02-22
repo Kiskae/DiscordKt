@@ -14,7 +14,9 @@ import net.serverpeon.discord.internal.ws.client.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.toObservable
+import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
+import net.serverpeon.discord.model.User
 import rx.Completable
 import rx.Observable
 import rx.Single
@@ -131,6 +133,18 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         }.flatMapIterable {
             it.values
         }
+    }
+
+    override fun getGuildById(id: DiscordId<Guild>): Single<Guild> {
+        return ensureSafeModelAccess().andThen(model).flatMap {
+            it.guilds
+        }.flatMap {
+            it[id]?.let { Observable.just(it as Guild) } ?: Observable.empty()
+        }.toSingle()
+    }
+
+    override fun getUserById(id: DiscordId<User>): Single<User> {
+        throw UnsupportedOperationException()
     }
 
     override fun eventBus(): EventBus {

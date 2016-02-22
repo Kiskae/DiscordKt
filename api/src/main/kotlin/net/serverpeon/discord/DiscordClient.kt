@@ -1,13 +1,20 @@
 package net.serverpeon.discord
 
 import com.google.common.eventbus.EventBus
+import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
+import net.serverpeon.discord.model.User
 import rx.Completable
 import rx.Observable
+import rx.Single
 import java.util.*
 
 interface DiscordClient : AutoCloseable {
     fun guilds(): Observable<Guild>
+
+    fun getGuildById(id: DiscordId<Guild>): Single<Guild>
+
+    fun getUserById(id: DiscordId<User>): Single<User>
 
     /**
      *
