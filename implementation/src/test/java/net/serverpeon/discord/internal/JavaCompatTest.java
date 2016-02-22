@@ -6,6 +6,6 @@ import org.junit.Test;
 public class JavaCompatTest {
     @Test
     public void testBuilderAccess() {
-        DiscordClient client = DiscordClient.Companion.newBuilder().build();
+        DiscordClient.Companion.newBuilder().token("hello").build();
     }
 }
