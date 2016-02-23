@@ -1,11 +1,12 @@
 package net.serverpeon.discord.internal.data
 
 import net.serverpeon.discord.internal.rest.data.UserModel
+import net.serverpeon.discord.internal.ws.data.inbound.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.User
 
-interface UserNode : User, EventProcessor {
+interface UserNode : User, Event.Visitor {
     override var username: String
     override var discriminator: String
     override var avatar: DiscordId<User.Avatar>?
@@ -21,20 +22,20 @@ interface UserNode : User, EventProcessor {
         }
     }
 
-    data class Profile(override val id: DiscordId<User>,
-                       override var username: String,
-                       override var discriminator: String,
-                       override var avatar: DiscordId<User.Avatar>?) : UserNode {
-        override fun acceptEvent(event: Any) {
-            when (event) {
-                is Misc.PresenceUpdate -> {
-                    event.user.let {
-                        it.username?.let { this.username = it }
-                        it.discriminator?.let { this.discriminator = it }
-                        it.avatar?.let { this.avatar = it }
-                    }
-                }
+    class Profile(override val id: DiscordId<User>,
+                  override var username: String,
+                  override var discriminator: String,
+                  override var avatar: DiscordId<User.Avatar>?) : UserNode {
+        override fun presenceUpdate(e: Misc.PresenceUpdate) {
+            e.user.let {
+                it.username?.let { this.username = it }
+                it.discriminator?.let { this.discriminator = it }
+                it.avatar?.let { this.avatar = it }
             }
+        }
+
+        override fun toString(): String {
+            return "Profile(id=$id, username='$username', discriminator='$discriminator', avatar=$avatar)"
         }
     }
 }

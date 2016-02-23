@@ -1,6 +1,7 @@
 package net.serverpeon.discord.internal.data
 
 import com.google.common.collect.ImmutableList
+import net.serverpeon.discord.internal.ws.data.inbound.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Guilds
 import net.serverpeon.discord.internal.ws.data.inbound.MemberModel
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
@@ -14,7 +15,7 @@ import java.time.ZonedDateTime
 class MemberNode(val guildNode: GuildNode,
                  val userNode: UserNode,
                  var internalRoles: List<RoleNode>,
-                 override val joinedAt: ZonedDateTime) : Guild.Member, EventProcessor {
+                 override val joinedAt: ZonedDateTime) : Guild.Member, Event.Visitor {
     override val roles: Observable<Role>
         get() = Observable.defer<Role> {
             Observable.from(internalRoles)
@@ -28,23 +29,24 @@ class MemberNode(val guildNode: GuildNode,
     override val username: String
         get() = userNode.username
 
-    override fun acceptEvent(event: Any) {
-        when (event) {
-            is Misc.PresenceUpdate -> {
-                userNode.acceptEvent(event)
-            }
-            is Guilds.Members.Update -> {
-                internalRoles = generateRoleList(event.member.roles, guildNode.roles)
-                //TODO: when adding mute/deaf, update those too
-            }
-            is Guilds.Roles.Delete -> {
-                if (internalRoles.find { it.id == event.role_id } != null) {
-                    internalRoles = ImmutableList.copyOf(internalRoles.filterNot {
-                        it.id == event.role_id
-                    })
-                }
-            }
+    override fun presenceUpdate(e: Misc.PresenceUpdate) {
+        userNode.visit(e)
+    }
+
+    override fun guildMemberUpdate(e: Guilds.Members.Update) {
+        internalRoles = generateRoleList(e.member.roles, guildNode.roles)
+    }
+
+    override fun guildRoleDelete(e: Guilds.Roles.Delete) {
+        if (internalRoles.isNotEmpty() && internalRoles.find { it.id == e.role_id } != null) {
+            internalRoles = ImmutableList.copyOf(internalRoles.filterNot {
+                it.id == e.role_id
+            })
         }
+    }
+
+    override fun toString(): String {
+        return "Member(user=$userNode, guild=${guildNode.id}, roles=$internalRoles, joinedAt=$joinedAt)"
     }
 
     companion object {
