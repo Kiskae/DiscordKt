@@ -5,53 +5,68 @@ import net.serverpeon.discord.internal.ws.data.inbound.*
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
+import net.serverpeon.discord.model.User
+import rx.Observable
 import kotlin.properties.Delegates
 
 class DiscordNode(val api: ApiWrapper) : Event.Visitor {
-    val userCache = UserCache()
-    var guilds = createEmptyMap<Guild, GuildNode>()
-    var channels = createEmptyMap<Channel, ChannelNode>()
-    var self: WhoamiNode by Delegates.notNull()
+    internal val userCache = UserCache()
+    internal var guildMap = createEmptyMap<Guild, GuildNode>()
+    internal var channelMap = createEmptyMap<Channel, ChannelNode>()
+    internal var self: WhoamiNode by Delegates.notNull()
+
+    val guilds: Observable<Guild>
+        get() = observableList { guildMap.values }
+
+    fun getGuildById(id: DiscordId<Guild>): Observable<Guild> {
+        return observableLookup(id) { guildMap[it] }
+    }
+
+    fun getUserById(id: DiscordId<User>): Observable<User> {
+        return observableLookup(id) {
+            userCache.retrieve(it)
+        }
+    }
 
     override fun guildCreate(e: Guilds.General.Create) {
-        check(e.guild.id !in guilds) { "Guild created twice? $e" }
+        check(e.guild.id !in guildMap) { "Guild created twice? $e" }
 
         val guild = GuildNode.from(e.guild, this)
-        guilds = guilds.immutableAdd(guild.id, guild)
+        guildMap = guildMap.immutableAdd(guild.id, guild)
     }
 
     override fun channelCreate(e: Channels.Create.Public) {
-        check(e.channel.id !in channels) { "Channel created twice? $e" }
+        check(e.channel.id !in channelMap) { "Channel created twice? $e" }
 
         super.channelCreate(e)
 
-        guilds[e.channel.guild_id]?.let { channels[e.channel.id] }?.let { channel ->
-            channels = channels.immutableAdd(channel.id, channel)
+        guildMap[e.channel.guild_id]?.let { channelMap[e.channel.id] }?.let { channel ->
+            channelMap = channelMap.immutableAdd(channel.id, channel)
         } ?: IllegalStateException("Created channel but not? $e")
     }
 
     override fun channelCreate(e: Channels.Create.Private) {
         //FIXME: this event gets send twice
         //check(e.channel.id !in channels)
-        if (e.channel.id in channels) return
+        if (e.channel.id in channelMap) return
 
         val channel = ChannelNode.from(e.channel, this)
-        channels = channels.immutableAdd(channel.id, channel)
+        channelMap = channelMap.immutableAdd(channel.id, channel)
     }
 
     override fun channelDelete(e: Channels.Delete.Public) {
         super.channelDelete(e)
-        channels = channels.immutableRemove(e.channel.id)
+        channelMap = channelMap.immutableRemove(e.channel.id)
     }
 
     override fun channelDelete(e: Channels.Delete.Private) {
-        channels = channels.immutableRemove(e.channel.id)
+        channelMap = channelMap.immutableRemove(e.channel.id)
     }
 
     override fun guildDelete(e: Guilds.General.Delete) {
-        val guild = guilds[e.guild.id]!!
-        channels = channels.immutableRemoveKeys(guild.channels.keys)
-        guilds = guilds.immutableRemove(guild.id)
+        val guild = guildMap[e.guild.id]!!
+        channelMap = channelMap.immutableRemoveKeys(guild.channelMap.keys)
+        guildMap = guildMap.immutableRemove(guild.id)
     }
 
     override fun userUpdate(e: Misc.UserUpdate) {
@@ -64,15 +79,15 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
     }
 
     override fun wireToGuild(id: DiscordId<Guild>, e: Event) {
-        guilds[id]!!.visit(e)
+        guildMap[id]!!.visit(e)
     }
 
     override fun wireToChannel(id: DiscordId<Channel>, e: Event) {
-        channels[id]!!.visit(e)
+        channelMap[id]!!.visit(e)
     }
 
     override fun toString(): String {
-        return "Root(guilds=${guilds.values}, privateChannels=${channels.values.filter { it.isPrivate }})"
+        return "Root(guilds=${guildMap.values}, privateChannels=${channelMap.values.filter { it.isPrivate }})"
     }
 
     companion object {
@@ -92,9 +107,9 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
             //PRIVATE_CHANNELS
             val privateChannels = data.private_channels.map { ChannelNode.from(it, primaryNode) }
 
-            primaryNode.guilds = guilds.toImmutableIdMap()
-            primaryNode.channels = combineMaps(
-                    guilds.flatMap { it.channels.values }.toImmutableIdMap(), // Create a single addressable map of guilds
+            primaryNode.guildMap = guilds.toImmutableIdMap()
+            primaryNode.channelMap = combineMaps(
+                    guilds.flatMap { it.channelMap.values }.toImmutableIdMap(), // Create a single addressable map of guilds
                     privateChannels.toImmutableIdMap()
             )
 

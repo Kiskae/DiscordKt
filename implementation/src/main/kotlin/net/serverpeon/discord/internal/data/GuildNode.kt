@@ -7,16 +7,23 @@ import net.serverpeon.discord.model.*
 import rx.Observable
 
 class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guild, Event.Visitor {
-    var channels = createEmptyMap<Channel, ChannelNode>()
-    var roles = createEmptyMap<Role, RoleNode>()
-    var members = createEmptyMap<User, MemberNode>()
-    var emojis = createEmptyMap<Emoji, EmojiNode>()
+    internal var channelMap = createEmptyMap<Channel, ChannelNode>()
+    internal var roleMap = createEmptyMap<Role, RoleNode>()
+    internal var memberMap = createEmptyMap<User, MemberNode>()
+    internal var emojiMap = createEmptyMap<Emoji, EmojiNode>()
+
+    override fun getChannelById(id: DiscordId<Channel>): Observable<Channel> {
+        return observableLookup(id) { channelMap[it] }
+    }
+
+    override val channels: Observable<Channel>
+        get() = observableList { channelMap.values }
 
     override fun channelCreate(e: Channels.Create.Public) {
-        check(e.channel.id !in channels) { "Double channel creation: $e" }
+        check(e.channel.id !in channelMap) { "Double channel creation: $e" }
 
         val channel = ChannelNode.from(e.channel, root)
-        channels = channels.immutableAdd(channel.id, channel)
+        channelMap = channelMap.immutableAdd(channel.id, channel)
     }
 
     override fun guildUpdate(e: Guilds.General.Update) {
@@ -24,17 +31,17 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     }
 
     override fun guildMemberAdd(e: Guilds.Members.Add) {
-        check(e.member.user.id !in members) { "Redundant member adds: $e" }
+        check(e.member.user.id !in memberMap) { "Redundant member adds: $e" }
 
         val newMember = MemberNode.from(e.member, this, root)
-        members = members.immutableAdd(newMember.id, newMember)
+        memberMap = memberMap.immutableAdd(newMember.id, newMember)
     }
 
     override fun guildMemberUpdate(e: Guilds.Members.Update) = wireToUser(e.member.user.id, e)
 
     override fun guildMemberRemove(e: Guilds.Members.Remove) {
-        check(e.member.user.id in members) { "Trying to remove non-existent member: $e" }
-        members = members.immutableRemove(e.member.user.id)
+        check(e.member.user.id in memberMap) { "Trying to remove non-existent member: $e" }
+        memberMap = memberMap.immutableRemove(e.member.user.id)
     }
 
     override fun guildBanAdd(e: Guilds.Bans.Add) {
@@ -46,24 +53,24 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     }
 
     override fun guildRoleCreate(e: Guilds.Roles.Create) {
-        check(e.role.id !in roles) { "Duplicate role create $e" }
+        check(e.role.id !in roleMap) { "Duplicate role create $e" }
 
         val role = RoleNode.from(e.role, root)
-        roles = roles.immutableAdd(role.id, role)
+        roleMap = roleMap.immutableAdd(role.id, role)
     }
 
     override fun guildRoleUpdate(e: Guilds.Roles.Update) {
-        roles[e.role.id]!!.visit(e)
+        roleMap[e.role.id]!!.visit(e)
     }
 
     override fun guildRoleDelete(e: Guilds.Roles.Delete) {
-        check(e.role_id in roles) { "Attempt to remove non-existent role: $e" }
-        members.values.forEach { it.visit(e) }
-        roles = roles.immutableRemove(e.role_id)
+        check(e.role_id in roleMap) { "Attempt to remove non-existent role: $e" }
+        memberMap.values.forEach { it.visit(e) }
+        roleMap = roleMap.immutableRemove(e.role_id)
     }
 
     override fun guildEmojiUpdate(e: Guilds.EmojiUpdate) {
-        emojis = e.emojis.map { parseEmoji(it, this) }.toImmutableIdMap()
+        emojiMap = e.emojis.map { parseEmoji(it, this) }.toImmutableIdMap()
     }
 
     override fun guildIntegrationsUpdate(e: Guilds.IntegrationsUpdate) {
@@ -78,16 +85,16 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     }
 
     override fun wireToUser(id: DiscordId<User>, e: Event) {
-        members[id]?.visit(e)
+        memberMap[id]?.visit(e)
     }
 
     override fun channelDelete(e: Channels.Delete.Public) {
-        check(e.channel.id in channels) { "Removing non-existent channel: $e" }
-        channels.immutableRemove(e.channel.id)
+        check(e.channel.id in channelMap) { "Removing non-existent channel: $e" }
+        channelMap.immutableRemove(e.channel.id)
     }
 
     override fun toString(): String {
-        return "Guild(id=$id, channels=${channels.values}, roles=${roles.values}, membersNo=${members.size})"
+        return "Guild(id=$id, channels=${channelMap.values}, roles=${roleMap.values}, membersNo=${memberMap.size})"
     }
 
     class EmojiNode(
@@ -106,7 +113,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     companion object {
         private fun parseEmoji(model: GuildModel.DataEmoji, guildNode: GuildNode): EmojiNode {
             return EmojiNode(
-                    ImmutableList.copyOf(model.roles.map { guildNode.roles[it]!! }),
+                    ImmutableList.copyOf(model.roles.map { guildNode.roleMap[it]!! }),
                     model.name,
                     model.managed,
                     model.id
@@ -116,10 +123,10 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
         fun from(data: ReadyEventModel.ExtendedGuild, root: DiscordNode): GuildNode {
             val guildNode = GuildNode(root, data.id)
 
-            guildNode.channels = data.channels.map { ChannelNode.from(it, root) }.toImmutableIdMap()
-            guildNode.roles = data.roles.map { RoleNode.from(it, root) }.toImmutableIdMap()
-            guildNode.members = data.members.map { MemberNode.from(it, guildNode, root) }.toImmutableIdMap()
-            guildNode.emojis = data.emojis.map { parseEmoji(it, guildNode) }.toImmutableIdMap()
+            guildNode.channelMap = data.channels.map { ChannelNode.from(it, root) }.toImmutableIdMap()
+            guildNode.roleMap = data.roles.map { RoleNode.from(it, root) }.toImmutableIdMap()
+            guildNode.memberMap = data.members.map { MemberNode.from(it, guildNode, root) }.toImmutableIdMap()
+            guildNode.emojiMap = data.emojis.map { parseEmoji(it, guildNode) }.toImmutableIdMap()
 
             return guildNode
         }

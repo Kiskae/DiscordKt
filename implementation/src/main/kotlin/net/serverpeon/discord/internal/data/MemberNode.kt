@@ -17,9 +17,7 @@ class MemberNode(val guildNode: GuildNode,
                  var internalRoles: List<RoleNode>,
                  override val joinedAt: ZonedDateTime) : Guild.Member, Event.Visitor {
     override val roles: Observable<Role>
-        get() = Observable.defer<Role> {
-            Observable.from(internalRoles)
-        }
+        get() = observableList { internalRoles }
     override val discriminator: String
         get() = userNode.discriminator
     override val avatar: DiscordId<User.Avatar>?
@@ -34,7 +32,7 @@ class MemberNode(val guildNode: GuildNode,
     }
 
     override fun guildMemberUpdate(e: Guilds.Members.Update) {
-        internalRoles = generateRoleList(e.member.roles, guildNode.roles)
+        internalRoles = generateRoleList(e.member.roles, guildNode.roleMap)
     }
 
     override fun guildRoleDelete(e: Guilds.Roles.Delete) {
@@ -56,7 +54,7 @@ class MemberNode(val guildNode: GuildNode,
             return MemberNode(
                     guildNode,
                     root.userCache.retrieve(model.user.id, model.user),
-                    generateRoleList(model.roles, guildNode.roles),
+                    generateRoleList(model.roles, guildNode.roleMap),
                     model.joined_at
             )
         }

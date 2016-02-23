@@ -6,15 +6,14 @@ import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.User
 import rx.Completable
 import rx.Observable
-import rx.Single
 import java.util.*
 
 interface DiscordClient : AutoCloseable {
     fun guilds(): Observable<Guild>
 
-    fun getGuildById(id: DiscordId<Guild>): Single<Guild>
+    fun getGuildById(id: DiscordId<Guild>): Observable<Guild>
 
-    fun getUserById(id: DiscordId<User>): Single<User>
+    fun getUserById(id: DiscordId<User>): Observable<User>
 
     /**
      *

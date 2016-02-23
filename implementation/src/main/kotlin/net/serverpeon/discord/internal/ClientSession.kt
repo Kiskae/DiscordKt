@@ -131,23 +131,23 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun guilds(): Observable<Guild> {
-        return ensureSafeModelAccess().andThen(model).flatMapIterable {
-            it.guilds.values
-        }
+        return ensureSafeModelAccess().andThen(model).flatMap { it.guilds }
     }
 
     fun repr(): Single<String> {
         return ensureSafeModelAccess().andThen(model).map { it.toString() }.toSingle()
     }
 
-    override fun getGuildById(id: DiscordId<Guild>): Single<Guild> {
+    override fun getGuildById(id: DiscordId<Guild>): Observable<Guild> {
         return ensureSafeModelAccess().andThen(model).flatMap {
-            it.guilds[id]?.let { Observable.just(it as Guild) } ?: Observable.empty()
-        }.toSingle()
+            it.getGuildById(id)
+        }
     }
 
-    override fun getUserById(id: DiscordId<User>): Single<User> {
-        throw UnsupportedOperationException()
+    override fun getUserById(id: DiscordId<User>): Observable<User> {
+        return ensureSafeModelAccess().andThen(model).flatMap {
+            it.getUserById(id)
+        }
     }
 
     override fun eventBus(): EventBus {

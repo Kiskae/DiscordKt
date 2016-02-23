@@ -3,6 +3,7 @@ package net.serverpeon.discord.internal.data
 import com.google.common.collect.ImmutableMap
 import com.jakewharton.rxrelay.BehaviorRelay
 import net.serverpeon.discord.model.DiscordId
+import rx.Observable
 
 internal fun <T : DiscordId.Identifiable<T>, G : T> createIdMapRelay(): BehaviorRelay<Map<DiscordId<T>, G>> {
     return BehaviorRelay.create()
@@ -40,6 +41,21 @@ internal fun <K, V> Map<K, V>.immutableRemoveKeys(keys: Set<K>): Map<K, V> {
             }
         }
     }.build()
+}
+
+inline fun <T : DiscordId.Identifiable<T>> observableLookup(
+        id: DiscordId<T>,
+        crossinline lookup: (DiscordId<T>) -> T?
+): Observable<T> {
+    return Observable.defer {
+        lookup(id)?.let { Observable.just(it) } ?: Observable.empty()
+    }
+}
+
+inline fun <T : DiscordId.Identifiable<T>> observableList(crossinline provider: () -> Iterable<T>): Observable<T> {
+    return Observable.defer {
+        Observable.from(provider())
+    }
 }
 
 internal fun <K, V> combineMaps(vararg maps: Map<K, V>): Map<K, V> {
