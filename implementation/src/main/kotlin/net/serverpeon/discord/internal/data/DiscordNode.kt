@@ -75,6 +75,7 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
     override fun guildDelete(e: Guilds.General.Delete) {
         val guild = guildMap[e.guild.id]!!
         channelMap = channelMap.immutableRemoveKeys(guild.channelMap.keys)
+        e.value = guildMap[guild.id]
         guildMap = guildMap.immutableRemove(guild.id)
     }
 

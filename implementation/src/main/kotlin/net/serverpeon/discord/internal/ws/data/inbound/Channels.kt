@@ -1,5 +1,6 @@
 package net.serverpeon.discord.internal.ws.data.inbound
 
+import net.serverpeon.discord.internal.data.ChannelNode
 import net.serverpeon.discord.internal.rest.data.ChannelModel
 
 interface Channels : Event {
@@ -18,10 +19,15 @@ interface Channels : Event {
     }
 
     interface Delete : Channels {
-        data class Public(val channel: ChannelModel) : Delete {
+        data class Public(val channel: ChannelModel) : Delete, Event.RefHolder<ChannelNode> {
+            override var value: ChannelNode? = null
+
             override fun accept(visitor: Event.Visitor) = visitor.channelDelete(this)
         }
-        data class Private(val channel: PrivateChannelModel) : Delete {
+
+        data class Private(val channel: PrivateChannelModel) : Delete, Event.RefHolder<ChannelNode> {
+            override var value: ChannelNode? = null
+
             override fun accept(visitor: Event.Visitor) = visitor.channelDelete(this)
         }
     }

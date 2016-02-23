@@ -1,5 +1,8 @@
 package net.serverpeon.discord.internal.ws.data.inbound
 
+import net.serverpeon.discord.internal.data.GuildNode
+import net.serverpeon.discord.internal.data.MemberNode
+import net.serverpeon.discord.internal.data.RoleNode
 import net.serverpeon.discord.internal.rest.data.GuildModel
 import net.serverpeon.discord.internal.rest.data.RoleModel
 import net.serverpeon.discord.internal.rest.data.UserModel
@@ -17,7 +20,9 @@ interface Guilds : Event {
             override fun accept(visitor: Event.Visitor) = visitor.guildUpdate(this)
         }
 
-        data class Delete(val guild: GuildModel) : Guilds {
+        data class Delete(val guild: GuildModel) : Guilds, Event.RefHolder<GuildNode> {
+            override var value: GuildNode? = null
+
             override fun accept(visitor: Event.Visitor) = visitor.guildDelete(this)
         }
     }
@@ -31,7 +36,9 @@ interface Guilds : Event {
             override fun accept(visitor: Event.Visitor) = visitor.guildMemberUpdate(this)
         }
 
-        data class Remove(val member: MemberModel) : Members {
+        data class Remove(val member: MemberModel) : Members, Event.RefHolder<MemberNode> {
+            override var value: MemberNode? = null
+
             override fun accept(visitor: Event.Visitor) = visitor.guildMemberRemove(this)
         }
     }
@@ -55,7 +62,10 @@ interface Guilds : Event {
             override fun accept(visitor: Event.Visitor) = visitor.guildRoleUpdate(this)
         }
 
-        data class Delete(val role_id: DiscordId<Role>, val guild_id: DiscordId<Guild>) : Roles {
+        data class Delete(val role_id: DiscordId<Role>, val guild_id: DiscordId<Guild>)
+        : Roles, Event.RefHolder<RoleNode> {
+            override var value: RoleNode? = null
+
             override fun accept(visitor: Event.Visitor) = visitor.guildRoleDelete(this)
         }
     }

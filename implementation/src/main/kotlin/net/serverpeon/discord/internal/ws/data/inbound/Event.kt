@@ -54,5 +54,9 @@ interface Event {
         }
     }
 
+    interface RefHolder<T> {
+        var value: T?
+    }
+
     fun accept(visitor: Visitor)
 }

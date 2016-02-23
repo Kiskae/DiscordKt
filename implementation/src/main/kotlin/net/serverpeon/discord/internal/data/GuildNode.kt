@@ -41,6 +41,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
 
     override fun guildMemberRemove(e: Guilds.Members.Remove) {
         check(e.member.user.id in memberMap) { "Trying to remove non-existent member: $e" }
+        e.value = memberMap[e.member.user.id]
         memberMap = memberMap.immutableRemove(e.member.user.id)
     }
 
@@ -66,6 +67,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     override fun guildRoleDelete(e: Guilds.Roles.Delete) {
         check(e.role_id in roleMap) { "Attempt to remove non-existent role: $e" }
         memberMap.values.forEach { it.visit(e) }
+        e.value = roleMap[e.role_id]
         roleMap = roleMap.immutableRemove(e.role_id)
     }
 
@@ -90,6 +92,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
 
     override fun channelDelete(e: Channels.Delete.Public) {
         check(e.channel.id in channelMap) { "Removing non-existent channel: $e" }
+        e.value = channelMap[e.channel.id]
         channelMap.immutableRemove(e.channel.id)
     }
 
