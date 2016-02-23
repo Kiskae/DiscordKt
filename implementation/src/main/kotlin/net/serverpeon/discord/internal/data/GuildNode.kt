@@ -104,7 +104,8 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
             val roles: List<Role>,
             override val name: String,
             override val imported: Boolean,
-            override val id: DiscordId<Emoji>) : Emoji {
+            override val id: DiscordId<Emoji>,
+            override val mustBeEscaped: Boolean) : Emoji {
         override val restrictedTo: Observable<Role>
             get() = Observable.defer { Observable.from(roles) }
 
@@ -119,7 +120,8 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
                     ImmutableList.copyOf(model.roles.map { guildNode.roleMap[it]!! }),
                     model.name,
                     model.managed,
-                    model.id
+                    model.id,
+                    model.require_colons
             )
         }
 

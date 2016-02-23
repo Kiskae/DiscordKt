@@ -25,24 +25,28 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
     class Public internal constructor(root: DiscordNode,
                                       id: DiscordId<Channel>,
                                       override val guild: GuildNode,
-                                      override var topic: String) : ChannelNode(root, id), Channel.Public {
+                                      override var topic: String,
+                                      override val type: Channel.Type,
+                                      override var name: String) : ChannelNode(root, id), Channel.Public {
         override val isPrivate: Boolean
             get() = false
 
         override fun channelUpdate(e: Channels.Update) {
-            //TODO: update metadata
+            e.channel.let {
+                this.name = it.name
+                this.topic = it.topic ?: ""
+            }
+            //TODO: permission overrides
         }
     }
 
     class Private internal constructor(root: DiscordNode,
                                        id: DiscordId<Channel>,
                                        override val recipient: UserNode) : ChannelNode(root, id), Channel.Private {
+        override val type: Channel.Type
+            get() = Channel.Type.PRIVATE
         override val isPrivate: Boolean
             get() = true
-
-        override fun channelUpdate(e: Channels.Update) {
-            //TODO: update metadata
-        }
     }
 
     companion object {
@@ -51,7 +55,9 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                     root,
                     channel.id,
                     guild,
-                    channel.topic ?: ""
+                    channel.topic ?: "",
+                    if (channel.type == ChannelModel.Type.TEXT) Channel.Type.TEXT else Channel.Type.VOICE,
+                    channel.name
             )
         }
 
