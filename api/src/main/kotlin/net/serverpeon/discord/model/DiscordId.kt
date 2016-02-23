@@ -1,14 +1,14 @@
 package net.serverpeon.discord.model
 
-import rx.Observable
-import rx.Single
-
+/**
+ * Discord identifies resources through a unique string id.
+ * This class acts as a type-safe wrapper for the various id's present in the model.
+ */
 data class DiscordId<T : DiscordId.Identifiable<T>>(val repr: String) {
-    fun <A : T> findIn(source: Observable<A>): Single<A> {
-        return source.first { it.id == this }.toSingle()
-    }
-
     interface Identifiable<T : Identifiable<T>> {
+        /**
+         * Discord uniquely identifies this resource with this ID.
+         */
         val id: DiscordId<T>
     }
 }
