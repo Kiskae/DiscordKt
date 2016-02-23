@@ -14,6 +14,7 @@ import net.serverpeon.discord.internal.ws.client.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.toObservable
+import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.User
@@ -148,6 +149,22 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         return ensureSafeModelAccess().andThen(model).flatMap {
             it.getUserById(id)
         }
+    }
+
+    override fun privateChannels(): Observable<Channel> {
+        return ensureSafeModelAccess().andThen(model).flatMap {
+            it.privateChannels
+        }
+    }
+
+    override fun getChannelById(id: DiscordId<Channel>): Observable<Channel> {
+        return ensureSafeModelAccess().andThen(model).flatMap {
+            it.getChannelById(id)
+        }
+    }
+
+    override fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel> {
+        return getChannelById(id).filter { it.isPrivate } //TODO: cast
     }
 
     override fun eventBus(): EventBus {

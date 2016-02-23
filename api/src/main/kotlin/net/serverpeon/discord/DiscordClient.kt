@@ -1,6 +1,7 @@
 package net.serverpeon.discord
 
 import com.google.common.eventbus.EventBus
+import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.User
@@ -14,6 +15,12 @@ interface DiscordClient : AutoCloseable {
     fun getGuildById(id: DiscordId<Guild>): Observable<Guild>
 
     fun getUserById(id: DiscordId<User>): Observable<User>
+
+    fun privateChannels(): Observable<Channel> //TODO: Channel.Private?
+
+    fun getChannelById(id: DiscordId<Channel>): Observable<Channel>
+
+    fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel> //TODO: Channel.Private
 
     /**
      *

@@ -10,5 +10,8 @@ interface Guild : DiscordId.Identifiable<Guild> {
     interface Member : User {
         val joinedAt: ZonedDateTime
         val roles: Observable<Role>
+
+        //TODO: lastState (enum)
+        //TODO: currentGame (String?)
     }
 }

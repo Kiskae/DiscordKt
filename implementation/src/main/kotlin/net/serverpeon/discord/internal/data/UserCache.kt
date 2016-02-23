@@ -15,6 +15,10 @@ class UserCache {
         return cache.getIfPresent(id)
     }
 
+    fun retrieve(model: UserModel): UserNode {
+        return retrieve(model.id, model)
+    }
+
     fun retrieve(id: DiscordId<User>, model: UserModel): UserNode {
         return cache[id, { UserNode.from(model) }]
     }

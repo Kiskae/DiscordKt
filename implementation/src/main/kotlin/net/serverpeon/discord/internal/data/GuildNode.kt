@@ -22,7 +22,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     override fun channelCreate(e: Channels.Create.Public) {
         check(e.channel.id !in channelMap) { "Double channel creation: $e" }
 
-        val channel = ChannelNode.from(e.channel, root)
+        val channel = ChannelNode.from(e.channel, this, root)
         channelMap = channelMap.immutableAdd(channel.id, channel)
     }
 
@@ -123,7 +123,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
         fun from(data: ReadyEventModel.ExtendedGuild, root: DiscordNode): GuildNode {
             val guildNode = GuildNode(root, data.id)
 
-            guildNode.channelMap = data.channels.map { ChannelNode.from(it, root) }.toImmutableIdMap()
+            guildNode.channelMap = data.channels.map { ChannelNode.from(it, guildNode, root) }.toImmutableIdMap()
             guildNode.roleMap = data.roles.map { RoleNode.from(it, root) }.toImmutableIdMap()
             guildNode.memberMap = data.members.map { MemberNode.from(it, guildNode, root) }.toImmutableIdMap()
             guildNode.emojiMap = data.emojis.map { parseEmoji(it, guildNode) }.toImmutableIdMap()

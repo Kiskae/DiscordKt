@@ -10,7 +10,11 @@ import net.serverpeon.discord.model.DiscordId
 
 class ChannelNode(val root: DiscordNode,
                   override val id: DiscordId<Channel>,
-                  val isPrivate: Boolean) : Channel, Event.Visitor {
+                  override var topic: String,
+                  private val recipient: UserNode?,
+                  private val guild: GuildNode?) : Channel, Event.Visitor {
+    override val isPrivate: Boolean
+        get() = recipient != null
 
     override fun channelUpdate(e: Channels.Update) {
         //TODO: update metadata, probably overrides
@@ -29,12 +33,24 @@ class ChannelNode(val root: DiscordNode,
     }
 
     companion object {
-        fun from(channel: ChannelModel, root: DiscordNode): ChannelNode {
-            return ChannelNode(root, channel.id, channel.is_private)
+        fun from(channel: ChannelModel, guild: GuildNode, root: DiscordNode): ChannelNode {
+            return ChannelNode(
+                    root,
+                    channel.id,
+                    channel.topic ?: "",
+                    null, // Public channels don't have a direct recipient
+                    guild
+            )
         }
 
         fun from(privateChannel: PrivateChannelModel, root: DiscordNode): ChannelNode {
-            return ChannelNode(root, privateChannel.id, privateChannel.is_private)
+            return ChannelNode(
+                    root,
+                    privateChannel.id,
+                    "", // Private channels don't have topics
+                    root.userCache.retrieve(privateChannel.recipient),
+                    null // Private channels are not associated with a guild
+            )
         }
     }
 }

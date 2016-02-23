@@ -29,6 +29,7 @@ class MemberNode(val guildNode: GuildNode,
 
     override fun presenceUpdate(e: Misc.PresenceUpdate) {
         userNode.visit(e)
+        //TODO: update game & status
     }
 
     override fun guildMemberUpdate(e: Guilds.Members.Update) {
