@@ -19,14 +19,14 @@ interface Channels : Event {
     }
 
     interface Delete : Channels {
-        data class Public(val channel: ChannelModel) : Delete, Event.RefHolder<ChannelNode> {
-            override var value: ChannelNode? = null
+        data class Public(val channel: ChannelModel) : Delete, Event.RefHolder<ChannelNode.Public> {
+            override var value: ChannelNode.Public? = null
 
             override fun accept(visitor: Event.Visitor) = visitor.channelDelete(this)
         }
 
-        data class Private(val channel: PrivateChannelModel) : Delete, Event.RefHolder<ChannelNode> {
-            override var value: ChannelNode? = null
+        data class Private(val channel: PrivateChannelModel) : Delete, Event.RefHolder<ChannelNode.Private> {
+            override var value: ChannelNode.Private? = null
 
             override fun accept(visitor: Event.Visitor) = visitor.channelDelete(this)
         }

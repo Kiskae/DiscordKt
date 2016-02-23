@@ -69,6 +69,7 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
     }
 
     override fun channelDelete(e: Channels.Delete.Private) {
+        e.value = channelMap[e.channel.id] as? ChannelNode.Private
         channelMap = channelMap.immutableRemove(e.channel.id)
     }
 
