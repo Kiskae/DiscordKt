@@ -8,29 +8,79 @@ import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.Role
 
 interface Guilds {
-    data class Create(val guild: GuildModel) : Guilds
-    data class Update(val guild: GuildModel) : Guilds
-    data class Delete(val guild: GuildModel) : Guilds
+    val id: DiscordId<Guild>
 
-    interface Members {
-        data class Add(val member: MemberModel) : Members
-        data class Update(val member: MemberModel) : Members
-        data class Remove(val member: MemberModel) : Members
+    interface General : Guilds {
+        data class Create(val guild: ReadyEventModel.ExtendedGuild) : Guilds {
+            override val id: DiscordId<Guild>
+                get() = guild.id
+        }
+
+        data class Update(val guild: GuildModel) : Guilds {
+            override val id: DiscordId<Guild>
+                get() = guild.id
+        }
+
+        data class Delete(val guild: GuildModel) : Guilds {
+            override val id: DiscordId<Guild>
+                get() = guild.id
+        }
     }
 
-    interface Bans {
-        data class Add(val user: UserModel, val guild_id: DiscordId<Guild>) : Bans
-        data class Remove(val user: UserModel, val guild_id: DiscordId<Guild>) : Bans
+    interface Members : Guilds {
+        data class Add(val member: MemberModel) : Members {
+            override val id: DiscordId<Guild>
+                get() = member.guild_id!!
+        }
+
+        data class Update(val member: MemberModel) : Members {
+            override val id: DiscordId<Guild>
+                get() = member.guild_id!!
+        }
+
+        data class Remove(val member: MemberModel) : Members {
+            override val id: DiscordId<Guild>
+                get() = member.guild_id!!
+        }
     }
 
-    interface Roles {
-        data class Create(val role: RoleModel, val guild_id: DiscordId<Guild>) : Roles
-        data class Update(val role: RoleModel, val guild_id: DiscordId<Guild>) : Roles
-        data class Delete(val role_id: DiscordId<Role>, val guild_id: DiscordId<Guild>) : Roles
+    interface Bans : Guilds {
+        data class Add(val user: UserModel, val guild_id: DiscordId<Guild>) : Bans {
+            override val id: DiscordId<Guild>
+                get() = guild_id
+        }
+
+        data class Remove(val user: UserModel, val guild_id: DiscordId<Guild>) : Bans {
+            override val id: DiscordId<Guild>
+                get() = guild_id
+        }
     }
 
-    data class EmojiUpdate(val guild_id: DiscordId<Guild>, val emojis: List<GuildModel.DataEmoji>)
+    interface Roles : Guilds {
+        data class Create(val role: RoleModel, val guild_id: DiscordId<Guild>) : Roles {
+            override val id: DiscordId<Guild>
+                get() = guild_id
+        }
+
+        data class Update(val role: RoleModel, val guild_id: DiscordId<Guild>) : Roles {
+            override val id: DiscordId<Guild>
+                get() = guild_id
+        }
+
+        data class Delete(val role_id: DiscordId<Role>, val guild_id: DiscordId<Guild>) : Roles {
+            override val id: DiscordId<Guild>
+                get() = guild_id
+        }
+    }
+
+    data class EmojiUpdate(val guild_id: DiscordId<Guild>, val emojis: List<GuildModel.DataEmoji>) : Guilds {
+        override val id: DiscordId<Guild>
+            get() = guild_id
+    }
 
     // Sent when integrated services are updated?
-    data class IntegrationsUpdate(val guild_id: DiscordId<Guild>)
+    data class IntegrationsUpdate(val guild_id: DiscordId<Guild>) : Guilds {
+        override val id: DiscordId<Guild>
+            get() = guild_id
+    }
 }

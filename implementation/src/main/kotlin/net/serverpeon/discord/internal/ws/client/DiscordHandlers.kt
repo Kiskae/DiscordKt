@@ -28,9 +28,9 @@ internal object DiscordHandlers {
             registerType("MESSAGE_UPDATE") { Messages.Update(it.parse()) }
             registerType("MESSAGE_DELETE") { it.parse<Messages.Delete>() }
             registerType("MESSAGE_ACK") { it.parse<Messages.Acknowledge>() }
-            registerType("GUILD_CREATE") { Guilds.Create(it.parse()) }
-            registerType("GUILD_UPDATE") { Guilds.Update(it.parse()) }
-            registerType("GUILD_DELETE") { Guilds.Delete(it.parse()) }
+            registerType("GUILD_CREATE") { Guilds.General.Create(it.parse()) }
+            registerType("GUILD_UPDATE") { Guilds.General.Update(it.parse()) }
+            registerType("GUILD_DELETE") { Guilds.General.Delete(it.parse()) }
             registerType("GUILD_MEMBER_ADD") { Guilds.Members.Add(it.parse()) }
             registerType("GUILD_MEMBER_UPDATE") { Guilds.Members.Update(it.parse()) }
             registerType("GUILD_MEMBER_REMOVE") { Guilds.Members.Remove(it.parse()) }

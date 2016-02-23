@@ -46,6 +46,7 @@ data class ReadyEventModel(val v: Int,
                          val id: DiscordId<Channel>)
 
     data class ExtendedGuild(val voice_states: List<VoiceStateModel>,
+                             val verification_level: Int,
                              val features: List<String>,
                              val afk_timeout: Duration,
                              val joined_at: ZonedDateTime,
