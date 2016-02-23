@@ -17,3 +17,23 @@ internal fun <T : DiscordId.Identifiable<T>, G : T> Iterable<G>.toImmutableIdMap
         forEach { put(it.id, it) } // Associate id to value
     }.build()
 }
+
+internal fun <K, V> Map<K, V>.immutableAdd(key: K, value: V): Map<K, V> {
+    return ImmutableMap.builder<K, V>().putAll(this).put(key, value).build()
+}
+
+internal fun <K, V> Map<K, V>.immutableRemove(key: K): Map<K, V> {
+    return ImmutableMap.builder<K, V>().apply {
+        for (e in entries) {
+            if (e.key != key) {
+                put(e)
+            }
+        }
+    }.build()
+}
+
+internal fun <K, V> combineMaps(vararg maps: Map<K, V>): Map<K, V> {
+    return ImmutableMap.builder<K, V>().apply {
+        maps.forEach { putAll(it) }
+    }.build()
+}

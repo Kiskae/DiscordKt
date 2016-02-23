@@ -39,7 +39,7 @@ class MemberNode(val guildNode: GuildNode,
             }
             is Guilds.Roles.Delete -> {
                 if (internalRoles.find { it.id == event.role_id } != null) {
-                    internalRoles = ImmutableList.copyOf(internalRoles.filter {
+                    internalRoles = ImmutableList.copyOf(internalRoles.filterNot {
                         it.id == event.role_id
                     })
                 }
