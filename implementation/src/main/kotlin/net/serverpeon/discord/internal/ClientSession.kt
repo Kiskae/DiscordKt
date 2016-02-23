@@ -90,7 +90,10 @@ class ClientSession(apiSource: Single<ApiWrapper>,
 
     private val model = BehaviorRelay.create<DiscordNode>().apply {
         // Set up connection to the eventStream for updates to the model
-        eventStream.map { it.event }.flatMap { event ->
+        eventStream.map { it.event }.filter {
+            // Only pass events through to the model
+            it is net.serverpeon.discord.internal.ws.data.inbound.Event
+        }.flatMap { event ->
             if (event is Misc.Ready) {
                 // If we receive a Ready event, generate a new model
                 apiWrapper.map { api ->
@@ -103,7 +106,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                 this
             }.map { model ->
                 // Pass the event to the model
-                model.acceptEvent(event)
+                model.visit(event as net.serverpeon.discord.internal.ws.data.inbound.Event)
             }
         }.subscribe()
     }.first()
@@ -128,18 +131,18 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun guilds(): Observable<Guild> {
-        return ensureSafeModelAccess().andThen(model).flatMap {
-            it.guilds
-        }.flatMapIterable {
-            it.values
+        return ensureSafeModelAccess().andThen(model).flatMapIterable {
+            it.guilds.values
         }
+    }
+
+    fun repr(): Single<String> {
+        return ensureSafeModelAccess().andThen(model).map { it.toString() }.toSingle()
     }
 
     override fun getGuildById(id: DiscordId<Guild>): Single<Guild> {
         return ensureSafeModelAccess().andThen(model).flatMap {
-            it.guilds
-        }.flatMap {
-            it[id]?.let { Observable.just(it as Guild) } ?: Observable.empty()
+            it.guilds[id]?.let { Observable.just(it as Guild) } ?: Observable.empty()
         }.toSingle()
     }
 

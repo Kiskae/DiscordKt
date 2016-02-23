@@ -2,6 +2,7 @@ package net.serverpeon.discord.internal
 
 import com.google.gson.GsonBuilder
 import com.google.gson.internal.bind.TypeAdapters
+import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.internal.rest.adapters.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.rxObservable
@@ -10,13 +11,14 @@ import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PermissionSet
 import okhttp3.OkHttpClient
+import rx.Observable
 import java.awt.Color
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
-fun main(args: Array<String>) {
-    val token = args[0]
+fun test1(token: String) {
     val gson = GsonBuilder().apply {
         registerTypeAdapter(Color::class.java, ColorAdapter.nullSafe())
         registerTypeAdapterFactory(TypeAdapters.newFactory(DiscordId::class.java, DiscordIdAdapter.nullSafe()))
@@ -54,4 +56,24 @@ fun main(args: Array<String>) {
     })
 
     latch.await()
+}
+
+fun test2(token: String) {
+    val client = DiscordClient.newBuilder().token(token).retries(0).build()
+
+    // Kick off model update
+    client.guilds().subscribe()
+
+    val modelRepr = (client as ClientSession).repr()
+
+    Observable.interval(10, TimeUnit.SECONDS).flatMap { modelRepr.toObservable() }.subscribe {
+        println(it)
+    }
+
+    client.closeFuture().await()
+}
+
+fun main(args: Array<String>) {
+    val token = args[0]
+    test2(token)
 }
