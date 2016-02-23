@@ -34,8 +34,8 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
         }
     }
 
-    val privateChannels: Observable<Channel>
-        get() = observableList { channelMap.values }.filter { it.isPrivate } //TODO: cast
+    val privateChannels: Observable<Channel.Private>
+        get() = observableList { channelMap.values }.filter { it.isPrivate }.cast(Channel.Private::class.java)
 
     override fun guildCreate(e: Guilds.General.Create) {
         check(e.guild.id !in guildMap) { "Guild created twice? $e" }

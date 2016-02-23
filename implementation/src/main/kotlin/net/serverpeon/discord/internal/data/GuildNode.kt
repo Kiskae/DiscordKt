@@ -7,17 +7,17 @@ import net.serverpeon.discord.model.*
 import rx.Observable
 
 class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guild, Event.Visitor {
-    internal var channelMap = createEmptyMap<Channel, ChannelNode>()
+    internal var channelMap = createEmptyMap<Channel, ChannelNode.Public>()
     internal var roleMap = createEmptyMap<Role, RoleNode>()
     internal var memberMap = createEmptyMap<User, MemberNode>()
     internal var emojiMap = createEmptyMap<Emoji, EmojiNode>()
 
-    override fun getChannelById(id: DiscordId<Channel>): Observable<Channel> {
-        return observableLookup(id) { channelMap[it] }
+    override fun getChannelById(id: DiscordId<Channel>): Observable<Channel.Public> {
+        return observableLookup(id) { channelMap[it] }.cast(Channel.Public::class.java)
     }
 
-    override val channels: Observable<Channel>
-        get() = observableList { channelMap.values }
+    override val channels: Observable<Channel.Public>
+        get() = observableList { channelMap.values }.cast(Channel.Public::class.java)
 
     override fun channelCreate(e: Channels.Create.Public) {
         check(e.channel.id !in channelMap) { "Double channel creation: $e" }

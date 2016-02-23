@@ -8,18 +8,8 @@ import net.serverpeon.discord.internal.ws.data.inbound.PrivateChannelModel
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 
-class ChannelNode(val root: DiscordNode,
-                  override val id: DiscordId<Channel>,
-                  override var topic: String,
-                  private val recipient: UserNode?,
-                  private val guild: GuildNode?) : Channel, Event.Visitor {
-    override val isPrivate: Boolean
-        get() = recipient != null
-
-    override fun channelUpdate(e: Channels.Update) {
-        //TODO: update metadata, probably overrides
-    }
-
+abstract class ChannelNode private constructor(val root: DiscordNode,
+                                               override val id: DiscordId<Channel>) : Channel, Event.Visitor {
     override fun voiceStateUpdate(e: Misc.VoiceStateUpdate) {
         // Ignored for now, how do we represent this
     }
@@ -32,24 +22,44 @@ class ChannelNode(val root: DiscordNode,
         return "Channel(id=$id)"
     }
 
+    class Public internal constructor(root: DiscordNode,
+                                      id: DiscordId<Channel>,
+                                      override val guild: GuildNode,
+                                      override var topic: String) : ChannelNode(root, id), Channel.Public {
+        override val isPrivate: Boolean
+            get() = false
+
+        override fun channelUpdate(e: Channels.Update) {
+            //TODO: update metadata
+        }
+    }
+
+    class Private internal constructor(root: DiscordNode,
+                                       id: DiscordId<Channel>,
+                                       override val recipient: UserNode) : ChannelNode(root, id), Channel.Private {
+        override val isPrivate: Boolean
+            get() = true
+
+        override fun channelUpdate(e: Channels.Update) {
+            //TODO: update metadata
+        }
+    }
+
     companion object {
-        fun from(channel: ChannelModel, guild: GuildNode, root: DiscordNode): ChannelNode {
-            return ChannelNode(
+        fun from(channel: ChannelModel, guild: GuildNode, root: DiscordNode): ChannelNode.Public {
+            return ChannelNode.Public(
                     root,
                     channel.id,
-                    channel.topic ?: "",
-                    null, // Public channels don't have a direct recipient
-                    guild
+                    guild,
+                    channel.topic ?: ""
             )
         }
 
-        fun from(privateChannel: PrivateChannelModel, root: DiscordNode): ChannelNode {
-            return ChannelNode(
+        fun from(privateChannel: PrivateChannelModel, root: DiscordNode): ChannelNode.Private {
+            return ChannelNode.Private(
                     root,
                     privateChannel.id,
-                    "", // Private channels don't have topics
-                    root.userCache.retrieve(privateChannel.recipient),
-                    null // Private channels are not associated with a guild
+                    root.userCache.retrieve(privateChannel.recipient)
             )
         }
     }

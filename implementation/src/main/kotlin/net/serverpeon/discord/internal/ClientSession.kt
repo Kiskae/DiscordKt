@@ -151,7 +151,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         }
     }
 
-    override fun privateChannels(): Observable<Channel> {
+    override fun privateChannels(): Observable<Channel.Private> {
         return ensureSafeModelAccess().andThen(model).flatMap {
             it.privateChannels
         }
@@ -163,8 +163,8 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         }
     }
 
-    override fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel> {
-        return getChannelById(id).filter { it.isPrivate } //TODO: cast
+    override fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private> {
+        return getChannelById(id).filter { it.isPrivate }.cast(Channel.Private::class.java)
     }
 
     override fun eventBus(): EventBus {

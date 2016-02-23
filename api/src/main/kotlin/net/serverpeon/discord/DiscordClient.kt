@@ -16,11 +16,11 @@ interface DiscordClient : AutoCloseable {
 
     fun getUserById(id: DiscordId<User>): Observable<User>
 
-    fun privateChannels(): Observable<Channel> //TODO: Channel.Private?
+    fun privateChannels(): Observable<Channel.Private>
 
     fun getChannelById(id: DiscordId<Channel>): Observable<Channel>
 
-    fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel> //TODO: Channel.Private
+    fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private>
 
     /**
      *

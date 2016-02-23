@@ -4,8 +4,8 @@ import rx.Observable
 import java.time.ZonedDateTime
 
 interface Guild : DiscordId.Identifiable<Guild> {
-    val channels: Observable<Channel>
-    fun getChannelById(id: DiscordId<Channel>): Observable<Channel>
+    val channels: Observable<Channel.Public>
+    fun getChannelById(id: DiscordId<Channel>): Observable<Channel.Public>
 
     interface Member : User {
         val joinedAt: ZonedDateTime
