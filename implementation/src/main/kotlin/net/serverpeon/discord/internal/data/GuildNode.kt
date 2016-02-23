@@ -1,12 +1,16 @@
 package net.serverpeon.discord.internal.data
 
+import com.google.common.collect.ImmutableList
+import net.serverpeon.discord.internal.rest.data.GuildModel
 import net.serverpeon.discord.internal.ws.data.inbound.*
 import net.serverpeon.discord.model.*
+import rx.Observable
 
 class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guild, Event.Visitor {
     var channels = createEmptyMap<Channel, ChannelNode>()
     var roles = createEmptyMap<Role, RoleNode>()
     var members = createEmptyMap<User, MemberNode>()
+    var emojis = createEmptyMap<Emoji, EmojiNode>()
 
     override fun channelCreate(e: Channels.Create.Public) {
         check(e.channel.id !in channels) { "Double channel creation: $e" }
@@ -59,7 +63,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     }
 
     override fun guildEmojiUpdate(e: Guilds.EmojiUpdate) {
-        //TODO: emoji update, happens all at once
+        emojis = e.emojis.map { parseEmoji(it, this) }.toImmutableIdMap()
     }
 
     override fun guildIntegrationsUpdate(e: Guilds.IntegrationsUpdate) {
@@ -86,18 +90,36 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
         return "Guild(id=$id, channels=${channels.values}, roles=${roles.values}, membersNo=${members.size})"
     }
 
+    class EmojiNode(
+            val roles: List<Role>,
+            override val name: String,
+            override val imported: Boolean,
+            override val id: DiscordId<Emoji>) : Emoji {
+        override val restrictedTo: Observable<Role>
+            get() = Observable.defer { Observable.from(roles) }
+
+        override fun toString(): String {
+            return "Emoji(id=$id, name='$name')"
+        }
+    }
+
     companion object {
+        private fun parseEmoji(model: GuildModel.DataEmoji, guildNode: GuildNode): EmojiNode {
+            return EmojiNode(
+                    ImmutableList.copyOf(model.roles.map { guildNode.roles[it]!! }),
+                    model.name,
+                    model.managed,
+                    model.id
+            )
+        }
+
         fun from(data: ReadyEventModel.ExtendedGuild, root: DiscordNode): GuildNode {
             val guildNode = GuildNode(root, data.id)
 
-            val channels = data.channels.map { ChannelNode.from(it, root) }
-            guildNode.channels = channels.toImmutableIdMap()
-
-            val roles = data.roles.map { RoleNode.from(it, root) }
-            guildNode.roles = roles.toImmutableIdMap()
-
-            val members = data.members.map { MemberNode.from(it, guildNode, root) }
-            guildNode.members = members.toImmutableIdMap()
+            guildNode.channels = data.channels.map { ChannelNode.from(it, root) }.toImmutableIdMap()
+            guildNode.roles = data.roles.map { RoleNode.from(it, root) }.toImmutableIdMap()
+            guildNode.members = data.members.map { MemberNode.from(it, guildNode, root) }.toImmutableIdMap()
+            guildNode.emojis = data.emojis.map { parseEmoji(it, guildNode) }.toImmutableIdMap()
 
             return guildNode
         }
