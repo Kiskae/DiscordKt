@@ -10,6 +10,10 @@ data class Event(private val session: Session, val event: Any) {
         private val logger = createLogger()
     }
 
+    fun accessSession(): Session {
+        return session;
+    }
+
     fun respond(text: String): CompletableFuture<Void> {
         val future = CompletableFuture<Void>()
         logger.kTrace { "Send: $text" }

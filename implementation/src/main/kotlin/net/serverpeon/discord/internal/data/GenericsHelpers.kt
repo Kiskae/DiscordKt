@@ -43,16 +43,16 @@ internal fun <K, V> Map<K, V>.immutableRemoveKeys(keys: Set<K>): Map<K, V> {
     }.build()
 }
 
-inline fun <T : DiscordId.Identifiable<T>> observableLookup(
+inline fun <T : DiscordId.Identifiable<T>, G> observableLookup(
         id: DiscordId<T>,
-        crossinline lookup: (DiscordId<T>) -> T?
-): Observable<T> {
+        crossinline lookup: (DiscordId<T>) -> G?
+): Observable<G> {
     return Observable.defer {
         lookup(id)?.let { Observable.just(it) } ?: Observable.empty()
     }
 }
 
-inline fun <T : DiscordId.Identifiable<T>> observableList(crossinline provider: () -> Iterable<T>): Observable<T> {
+inline fun <T : DiscordId.Identifiable<T>, G> observableList(crossinline provider: () -> Iterable<G>): Observable<G> {
     return Observable.defer {
         Observable.from(provider())
     }

@@ -67,9 +67,8 @@ data class ReadyEventModel(val v: Int,
 
         data class Presence(val user: Ref,
                             val status: Misc.PresenceUpdate.Status,
-                            val game: Game) {
+                            val game: Misc.PresenceUpdate.Playing?) {
             data class Ref(val id: DiscordId<User>)
-            data class Game(val name: String)
         }
 
     }

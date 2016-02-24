@@ -27,6 +27,7 @@ import rx.subjects.BehaviorSubject
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
+import javax.websocket.Session
 import kotlin.concurrent.withLock
 
 class ClientSession(apiSource: Single<ApiWrapper>,
@@ -35,6 +36,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                     metadata: DiscordClient.Builder.UserMetadata,
                     private val retryHandler: RetryHandler) : DiscordClient {
     companion object {
+        private val logger = createLogger()
         private const val DISCORD_API_VERSION = 3
     }
 
@@ -72,6 +74,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
             }
         }
     }.publish()
+    private val sessionWrapper: BehaviorSubject<Session> = BehaviorSubject.create()
 
     //Fields for tracking the current state of the client
     private val closeFuture: CompletableFuture<Void> = CompletableFuture()
@@ -98,6 +101,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
             if (event is Misc.Ready) {
                 // If we receive a Ready event, generate a new model
                 apiWrapper.map { api ->
+                    logger.kDebug { "Rebuilding Discord model" }
                     val newModel = DiscordNode.from(event.data, api)
                     this.call(newModel) // Update the model
                     newModel
@@ -129,6 +133,11 @@ class ClientSession(apiSource: Single<ApiWrapper>,
 
         // If the event-stream hasn't been initialized this is also a failure condition
         apiWrapper.doOnError { closeFuture.completeExceptionally(it) }.subscribe()
+
+        // Set up session capture
+        eventStream.first().subscribe { event -> sessionWrapper.onNext(event.accessSession()) }
+        // Close session container on completion
+        eventStream.doOnTerminate { sessionWrapper.onCompleted() }.subscribe()
     }
 
     override fun guilds(): Observable<Guild> {

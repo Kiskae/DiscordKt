@@ -1,5 +1,7 @@
 package net.serverpeon.discord.model
 
+import rx.Observable
+
 /**
  * A channel is a line of communication in Discord.
  * Channels can either exist within a guild ([Public]) or happen between two people ([Private]).
@@ -13,7 +15,11 @@ interface Channel : DiscordId.Identifiable<Channel> {
     val isPrivate: Boolean
 
     /**
-     * Indicates the communication type of this channel
+     * Indicates the communication type of this channel.
+     *
+     * [Type.TEXT] -> Object is [Public] and [Text]
+     * [Type.VOICE] -> Object is [Public] and [Voice]
+     * [Type.PRIVATE] -> Object is [Private] and [Text]
      */
     val type: Type
 
@@ -23,7 +29,7 @@ interface Channel : DiscordId.Identifiable<Channel> {
      *
      * At any time an arbitrary number of people can receive the messages sent to this channel.
      */
-    interface Public : Channel {
+    interface Public : Channel, Text, Voice {
         /**
          * The guild that this channel belongs to.
          */
@@ -38,17 +44,59 @@ interface Channel : DiscordId.Identifiable<Channel> {
          * The name of this channel, this shows up in channel list on the official discord interface.
          */
         val name: String
-        //TODO: permission override
+        /**
+         *
+         */
+        val memberOverrides: Observable<ResolvedPermission<Guild.Member>>
+        /**
+         *
+         */
+        val roleOverrides: Observable<ResolvedPermission<Role>>
+
+        /**
+         *
+         */
+        fun permissionsFor(role: Role): PermissionSet
+
+        /**
+         *
+         */
+        fun permissionsFor(member: Guild.Member): PermissionSet
     }
+
+    /**
+     * @property holder
+     * @property perms
+     */
+    data class ResolvedPermission<G : DiscordId.Identifiable<*>>(val holder: G, val perms: PermissionSet)
 
     /**
      * A direct messaging channel to [recipient], messages can be read by you and them.
      */
-    interface Private : Channel {
+    interface Private : Channel, Text {
         /**
          * The recipient on the other end of this channel.
          */
         val recipient: User
+    }
+
+    interface Text {
+
+        /**
+         * TODO: should text/voice be separated?
+         *
+         * @param msgSpec TODO
+         */
+        //fun sendMessage(msgSpec: Nothing): Observable<Message>
+
+        //TODO: message history
+    }
+
+    interface Voice {
+        /**
+         *
+         */
+        val members: Observable<Guild.Member>
     }
 
     enum class Type {

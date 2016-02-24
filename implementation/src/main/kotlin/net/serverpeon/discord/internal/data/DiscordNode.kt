@@ -1,5 +1,7 @@
 package net.serverpeon.discord.internal.data
 
+import net.serverpeon.discord.internal.createLogger
+import net.serverpeon.discord.internal.kDebug
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.ws.data.inbound.*
 import net.serverpeon.discord.model.Channel
@@ -16,7 +18,7 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
     internal var self: WhoamiNode by Delegates.notNull()
 
     val guilds: Observable<Guild>
-        get() = observableList { guildMap.values }
+        get() = observableList<Guild, Guild> { guildMap.values }
 
     fun getGuildById(id: DiscordId<Guild>): Observable<Guild> {
         return observableLookup(id) { guildMap[it] }
@@ -35,10 +37,16 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
     }
 
     val privateChannels: Observable<Channel.Private>
-        get() = observableList { channelMap.values }.filter { it.isPrivate }.cast(Channel.Private::class.java)
+        get() = observableList<Channel, ChannelNode> {
+            channelMap.values
+        }.filter {
+            it.isPrivate
+        }.cast(Channel.Private::class.java)
 
     override fun guildCreate(e: Guilds.General.Create) {
         check(e.guild.id !in guildMap) { "Guild created twice? $e" }
+
+        logger.kDebug { "Guild created: ${e.guild.id.repr}#${e.guild.name}" }
 
         val guild = GuildNode.from(e.guild, this)
         guildMap = guildMap.immutableAdd(guild.id, guild)
@@ -49,6 +57,8 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
 
         super.channelCreate(e)
 
+        logger.kDebug { "Channel created: ${e.channel.id.repr}#${e.channel.name}" }
+
         guildMap[e.channel.guild_id]?.let { channelMap[e.channel.id] }?.let { channel ->
             channelMap = channelMap.immutableAdd(channel.id, channel)
         } ?: IllegalStateException("Created channel but not? $e")
@@ -58,6 +68,8 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
         //FIXME: this event gets send twice
         //check(e.channel.id !in channels)
         if (e.channel.id in channelMap) return
+
+        logger.kDebug { "Channel created: ${e.channel.id.repr}#${e.channel.recipient.username}-${e.channel.recipient.discriminator}" }
 
         val channel = ChannelNode.from(e.channel, this)
         channelMap = channelMap.immutableAdd(channel.id, channel)
@@ -102,6 +114,8 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
     }
 
     companion object {
+        private val logger = createLogger()
+
         fun from(data: ReadyEventModel, api: ApiWrapper): DiscordNode {
             val primaryNode = DiscordNode(api)
 

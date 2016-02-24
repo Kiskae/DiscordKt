@@ -1,10 +1,7 @@
 package net.serverpeon.discord.internal.data
 
 import com.google.common.collect.ImmutableList
-import net.serverpeon.discord.internal.ws.data.inbound.Event
-import net.serverpeon.discord.internal.ws.data.inbound.Guilds
-import net.serverpeon.discord.internal.ws.data.inbound.MemberModel
-import net.serverpeon.discord.internal.ws.data.inbound.Misc
+import net.serverpeon.discord.internal.ws.data.inbound.*
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.Role
@@ -12,12 +9,27 @@ import net.serverpeon.discord.model.User
 import rx.Observable
 import java.time.ZonedDateTime
 
-class MemberNode(val guildNode: GuildNode,
+class MemberNode(override val guild: GuildNode,
                  val userNode: UserNode,
                  var internalRoles: List<RoleNode>,
-                 override val joinedAt: ZonedDateTime) : Guild.Member, Event.Visitor {
+                 override val joinedAt: ZonedDateTime,
+                 override var status: Guild.Member.Status,
+                 override var currentGame: String?,
+                 override var deaf: Boolean,
+                 override var mute: Boolean,
+                 override var forcedDeaf: Boolean,
+                 override var forcedMute: Boolean) : Guild.Member, Event.Visitor {
+
     override val roles: Observable<Role>
-        get() = observableList { internalRoles }
+        get() = observableList<Role, RoleNode> {
+            // Sorting needs to happen in a deferred manner to ensure position changes get picked up
+            internalRoles.sortedBy { it.position }
+        }.compose { roleObservable ->
+            Observable.concat(Observable.defer {
+                Observable.just(guild.everyoneRole)
+            }, roleObservable)
+        }.cast(Role::class.java)
+
     override val discriminator: String
         get() = userNode.discriminator
     override val avatar: DiscordId<User.Avatar>?
@@ -29,11 +41,22 @@ class MemberNode(val guildNode: GuildNode,
 
     override fun presenceUpdate(e: Misc.PresenceUpdate) {
         userNode.visit(e)
-        //TODO: update game & status
+
+        currentGame = e.game?.name
+        status = mapStatus(e.status)
+    }
+
+    override fun voiceStateUpdate(e: Misc.VoiceStateUpdate) {
+        e.update.let {
+            deaf = it.deaf
+            mute = it.mute
+            forcedMute = it.self_mute
+            forcedDeaf = it.self_deaf
+        }
     }
 
     override fun guildMemberUpdate(e: Guilds.Members.Update) {
-        internalRoles = generateRoleList(e.member.roles, guildNode.roleMap)
+        internalRoles = generateRoleList(e.member.roles, guild.roleMap)
     }
 
     override fun guildRoleDelete(e: Guilds.Roles.Delete) {
@@ -45,19 +68,35 @@ class MemberNode(val guildNode: GuildNode,
     }
 
     override fun toString(): String {
-        return "Member(user=$userNode, guild=${guildNode.id}, roles=$internalRoles, joinedAt=$joinedAt)"
+        return "Member(user=$userNode, guild=${guild.id}, roles=$internalRoles, joinedAt=$joinedAt, status=$status, currentGame=$currentGame)"
     }
 
     companion object {
         fun from(model: MemberModel,
+                 presence: ReadyEventModel.ExtendedGuild.Presence?,
+                 voiceState: VoiceStateModel?,
                  guildNode: GuildNode,
                  root: DiscordNode): MemberNode {
             return MemberNode(
                     guildNode,
                     root.userCache.retrieve(model.user.id, model.user),
                     generateRoleList(model.roles, guildNode.roleMap),
-                    model.joined_at
+                    model.joined_at,
+                    presence?.status?.let { mapStatus(it) } ?: Guild.Member.Status.OFFLINE,
+                    presence?.game?.name,
+                    voiceState?.deaf ?: false,
+                    voiceState?.mute ?: false,
+                    voiceState?.self_deaf ?: false,
+                    voiceState?.self_mute ?: false
             )
+        }
+
+        private fun mapStatus(status: Misc.PresenceUpdate.Status): Guild.Member.Status {
+            return when (status) {
+                Misc.PresenceUpdate.Status.ONLINE -> Guild.Member.Status.ONLINE
+                Misc.PresenceUpdate.Status.IDLE -> Guild.Member.Status.IDLE
+                Misc.PresenceUpdate.Status.OFFLINE -> Guild.Member.Status.OFFLINE
+            }
         }
 
         private fun generateRoleList(roles: Iterable<DiscordId<Role>>?,

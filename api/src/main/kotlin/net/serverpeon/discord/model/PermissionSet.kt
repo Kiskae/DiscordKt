@@ -17,11 +17,15 @@ data class PermissionSet internal constructor(private val permissions: EnumSet<P
         return this.permissions.containsAll(permissions)
     }
 
+    fun without(perms: PermissionSet) = without(perms.toSet())
+
     fun without(perms: Collection<Permission>): PermissionSet {
         return PermissionSet(EnumSet.copyOf(permissions).apply {
             removeAll(perms)
         })
     }
+
+    fun with(perms: PermissionSet) = with(perms.toSet())
 
     fun with(perms: Collection<Permission>): PermissionSet {
         return PermissionSet(EnumSet.copyOf(permissions).apply {
