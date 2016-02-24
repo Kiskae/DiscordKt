@@ -1,14 +1,16 @@
 package net.serverpeon.discord.tool
 
-import com.google.gson.JsonElement
+import com.google.common.collect.ImmutableSet
+import com.google.gson.*
+import java.lang.reflect.Type
 
 abstract class JsonModel(val type: String) {
     abstract fun acceptData(el: JsonElement)
 
     class Object : JsonModel("object") {
-        private val fields: MutableMap<String, JsonModel> = mutableMapOf()
-        private val requiredFields: GetOrCreate<MutableSet<String>> = GetOrCreate()
-        private val nullableFields: MutableSet<String> = mutableSetOf()
+        internal val fields: MutableMap<String, JsonModel> = mutableMapOf()
+        internal val requiredFields: GetOrCreate<MutableSet<String>> = GetOrCreate()
+        internal val nullableFields: MutableSet<String> = mutableSetOf()
 
         override fun acceptData(el: JsonElement) {
             val obj = el.asJsonObject
@@ -26,7 +28,7 @@ abstract class JsonModel(val type: String) {
     }
 
     class Array : JsonModel("array") {
-        private val prototype: GetOrCreate<JsonModel> = GetOrCreate()
+        internal val prototype: GetOrCreate<JsonModel> = GetOrCreate()
 
         override fun acceptData(el: JsonElement) {
             val arr = el.asJsonArray
@@ -40,7 +42,7 @@ abstract class JsonModel(val type: String) {
     }
 
     class Field : JsonModel("field") {
-        private val fieldType: MutableSet<String> = mutableSetOf()
+        internal val fieldType: MutableSet<String> = mutableSetOf()
 
         override fun acceptData(el: JsonElement) {
             val value = el.asJsonPrimitive
@@ -50,6 +52,57 @@ abstract class JsonModel(val type: String) {
                 value.isString -> "string"
                 else -> "undefined"
             })
+        }
+    }
+
+    object Serializer : JsonSerializer<JsonModel> {
+        override fun serialize(src: JsonModel, type: Type, context: JsonSerializationContext): JsonElement {
+            return when (src) {
+                is Object -> {
+                    JsonArray().apply {
+                        val req = src.requiredFields.getOrCreate { ImmutableSet.of() }
+                        for ((k, v) in src.fields) {
+                            add(JsonObject().apply {
+                                addProperty("name", k)
+                                addProperty("required", k in req)
+                                addProperty("nullable", k in src.nullableFields)
+                                add("content", context.serialize(v))
+                            })
+                        }
+                    }
+                }
+                is Array -> {
+                    JsonObject().apply {
+                        addProperty("__", "array")
+                        add("content", context.serialize(src.prototype.getOrCreate { Null }))
+                    }
+                }
+                is Field -> {
+                    JsonObject().apply {
+                        add("type", src.fieldType.let {
+                            if (it.isEmpty()) {
+                                JsonNull.INSTANCE
+                            } else if (it.size == 1) {
+                                JsonPrimitive(it.first())
+                            } else {
+                                JsonArray().apply {
+                                    it.forEach { add(it) }
+                                }
+                            }
+                        })
+                    }
+                }
+                Null -> {
+                    JsonNull.INSTANCE
+                }
+                else -> error("Unknown type")
+            }
+        }
+    }
+
+    private object Null : JsonModel("null") {
+        override fun acceptData(el: JsonElement) {
+            error("Should never happen")
         }
     }
 

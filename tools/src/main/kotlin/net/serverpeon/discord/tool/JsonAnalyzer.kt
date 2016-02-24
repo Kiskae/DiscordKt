@@ -4,7 +4,10 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 
-class JsonAnalyzer(val gson: Gson = GsonBuilder().setPrettyPrinting().create()) {
+class JsonAnalyzer(val gson: Gson = GsonBuilder()
+        .registerTypeHierarchyAdapter(JsonModel::class.java, JsonModel.Serializer)
+        .setPrettyPrinting()
+        .create()) {
     val result: Any
         get() = prototypes
     private val prototypes: MutableMap<String, JsonModel> = mutableMapOf()
