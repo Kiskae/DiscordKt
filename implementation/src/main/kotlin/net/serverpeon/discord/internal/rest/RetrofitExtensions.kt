@@ -8,6 +8,7 @@ import rx.Observable
 import rx.Single
 import rx.Subscriber
 import rx.subscriptions.Subscriptions
+import java.time.Duration
 
 fun Call<Void>.rx(): Completable {
     return this.internalToRx().toCompletable()
@@ -21,10 +22,20 @@ fun <T> Call<T>.rxObservable(): Observable<T> {
     return this.internalToRx().map { it.body() }
 }
 
-class ResponseException(
+open class ResponseException(
         val call: Call<*>,
         val response: Response<*>
 ) : RuntimeException("Call [${call.request().url()}] failed: [${response.message()}]")
+
+//TODO: move to API
+class RateLimitException(
+        call: Call<*>,
+        response: Response<*>,
+        val retryAfter: Duration
+) : ResponseException(call, response) {
+    override val message: String?
+        get() = "${super.message} - Retry after: $retryAfter"
+}
 
 private fun <T> Call<T>.internalToRx(): Observable<Response<T>> {
     return Observable.create { sub ->
@@ -53,6 +64,10 @@ private class RxCallback<T>(val sub: Subscriber<in Response<T>>) : Callback<T> {
         } else if (response.isSuccess) {
             sub.onNext(response)
             sub.onCompleted()
+        } else if (response.code() == 429) {
+            sub.onError(RateLimitException(call, response, response.headers().get("Retry-After")?.let {
+                Duration.ofMillis(it.toLong())
+            } ?: Duration.ZERO))
         } else {
             sub.onError(ResponseException(call, response))
         }
