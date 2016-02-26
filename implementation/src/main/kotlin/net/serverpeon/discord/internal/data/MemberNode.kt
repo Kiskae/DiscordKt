@@ -19,6 +19,8 @@ class MemberNode(override val guild: GuildNode,
                  override var mute: Boolean,
                  override var forcedDeaf: Boolean,
                  override var forcedMute: Boolean) : Guild.Member, Event.Visitor {
+    override val user: User
+        get() = this
 
     override val roles: Observable<Role>
         get() = observableList<Role, RoleNode> {

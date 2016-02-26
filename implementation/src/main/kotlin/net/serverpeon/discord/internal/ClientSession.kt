@@ -7,13 +7,13 @@ import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.internal.data.DiscordNode
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
-import net.serverpeon.discord.internal.rest.rxObservable
+import net.serverpeon.discord.internal.rxObservable
 import net.serverpeon.discord.internal.ws.RetryHandler
 import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
-import net.serverpeon.discord.internal.ws.data.toObservable
+import net.serverpeon.discord.internal.toObservable
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild

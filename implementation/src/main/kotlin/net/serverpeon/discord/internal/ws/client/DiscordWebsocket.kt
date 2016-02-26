@@ -7,7 +7,7 @@ import net.serverpeon.discord.internal.kTrace
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.outbound.KeepaliveMsg
-import net.serverpeon.discord.internal.ws.data.toObservable
+import net.serverpeon.discord.internal.toObservable
 import org.glassfish.tyrus.client.ClientManager
 import rx.Observable
 import rx.Subscriber

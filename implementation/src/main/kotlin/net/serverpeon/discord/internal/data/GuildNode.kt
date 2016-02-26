@@ -11,7 +11,10 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     internal var channelMap = createEmptyMap<Channel, ChannelNode.Public>()
     internal var roleMap = createEmptyMap<Role, RoleNode>()
         set(e: Map<DiscordId<Role>, RoleNode>) {
-            everyoneRole = e.values.first { it.position == -1 }
+            if (e.isNotEmpty()) {
+                // Turns out @everyone is not always position -1
+                everyoneRole = e.values.sortedBy { it.position }.first()
+            }
             field = e
         }
     internal var everyoneRole: RoleNode by Delegates.notNull()
@@ -33,7 +36,8 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     }
 
     override fun getChannelByName(name: String): Observable<Channel.Public> {
-        throw UnsupportedOperationException()
+        val sanitizedName = ChannelNode.sanitizeChannelName(name)
+        return channels.filter { it.name == sanitizedName }.first()
     }
 
     override val members: Observable<Guild.Member>
@@ -104,10 +108,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
 
     override fun presenceUpdate(e: Misc.PresenceUpdate) = wireToUser(e.user.id, e)
 
-    override fun voiceStateUpdate(e: Misc.VoiceStateUpdate) {
-        // Forward to member
-        memberMap[e.update.user_id]?.voiceStateUpdate(e)
-    }
+    override fun voiceStateUpdate(e: Misc.VoiceStateUpdate) = wireToUser(e.update.user_id, e)
 
     override fun wireToUser(id: DiscordId<User>, e: Event) {
         memberMap[id]?.visit(e)

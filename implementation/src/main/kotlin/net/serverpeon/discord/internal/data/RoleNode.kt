@@ -33,6 +33,7 @@ class RoleNode(private val root: DiscordNode,
 
     companion object {
         fun from(model: RoleModel, root: DiscordNode): RoleNode {
+            println("${model.name} - ${model.position}")
             return RoleNode(root,
                     model.id,
                     model.name,

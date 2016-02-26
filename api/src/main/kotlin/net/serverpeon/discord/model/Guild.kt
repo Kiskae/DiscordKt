@@ -3,9 +3,21 @@ package net.serverpeon.discord.model
 import rx.Observable
 import java.time.ZonedDateTime
 
+/**
+ * Discord represents individual servers as "Guilds"
+ *
+ * Each guild has a number of channels that can either be [Channel.Type.VOICE] or [Channel.Type.TEXT] channels.
+ * They also contain a list of members with assigned permissions that can be queried on a channel-by-channel basis.
+ */
 interface Guild : DiscordId.Identifiable<Guild> {
+    /**
+     * Retrieves a list of all channels in this guild.
+     */
     val channels: Observable<Channel.Public>
 
+    /**
+     *
+     */
     fun getChannelById(id: DiscordId<Channel>): Observable<Channel.Public>
 
     fun getChannelByName(name: String): Observable<Channel.Public>

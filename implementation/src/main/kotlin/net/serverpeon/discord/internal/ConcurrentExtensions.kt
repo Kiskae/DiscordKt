@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.rest
+package net.serverpeon.discord.internal
 
 import retrofit2.Call
 import retrofit2.Callback
@@ -9,6 +9,8 @@ import rx.Single
 import rx.Subscriber
 import rx.subscriptions.Subscriptions
 import java.time.Duration
+import java.util.concurrent.CancellationException
+import java.util.concurrent.CompletableFuture
 
 fun Call<Void>.rx(): Completable {
     return this.internalToRx().toCompletable()
@@ -70,6 +72,61 @@ private class RxCallback<T>(val sub: Subscriber<in Response<T>>) : Callback<T> {
             } ?: Duration.ZERO))
         } else {
             sub.onError(ResponseException(call, response))
+        }
+    }
+}
+
+fun <T> CompletableFuture<T>.toObservable(): Observable<T> {
+    return Observable.create { sub ->
+        this.whenComplete { result, throwable ->
+            if (throwable != null) {
+                sub.onError(throwable)
+            } else {
+                sub.onNext(result)
+                sub.onCompleted()
+            }
+        }
+    }
+}
+
+fun <T> Call<T>.toFuture(): CompletableFuture<T> {
+    val future = CompletableFuture<T>()
+    this.clone().apply {
+        future.handle { value, th ->
+            // Add cancel handling logic
+            if (value == null && th is CancellationException) {
+                cancel()
+            }
+            null
+        }
+        enqueue(FutureCallback(future))
+    }
+    return future
+}
+
+private class FutureCallback<T>(val future: CompletableFuture<T>) : Callback<T> {
+    override fun onFailure(call: Call<T>, th: Throwable) {
+        if (call.isCanceled) {
+            future.completeExceptionally(
+                    if (th is CancellationException)
+                        th
+                    else
+                        CancellationException()
+            )
+        } else {
+            future.completeExceptionally(th)
+        }
+    }
+
+    override fun onResponse(call: Call<T>, response: Response<T>) {
+        if (response.isSuccess) {
+            future.complete(response.body())
+        } else if (response.code() == 429) {
+            future.completeExceptionally(RateLimitException(call, response, response.headers().get("Retry-After")?.let {
+                Duration.ofMillis(it.toLong())
+            } ?: Duration.ZERO))
+        } else {
+            future.completeExceptionally(ResponseException(call, response))
         }
     }
 }

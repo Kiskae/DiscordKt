@@ -17,6 +17,10 @@ data class PermissionSet internal constructor(private val permissions: EnumSet<P
         return this.permissions.containsAll(permissions)
     }
 
+    fun empty(): Boolean {
+        return this.permissions.isEmpty()
+    }
+
     fun without(perms: PermissionSet) = without(perms.toSet())
 
     fun without(perms: Collection<Permission>): PermissionSet {
