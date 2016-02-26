@@ -42,7 +42,7 @@ data class ReadyEventModel(val v: Int,
     }
 
     data class ReadState(val mention_count: Int,
-                         val last_message_id: DiscordId<Message>,
+                         val last_message_id: DiscordId<PostedMessage>,
                          val id: DiscordId<Channel>)
 
     data class ExtendedGuild(val voice_states: List<VoiceStateModel>,

@@ -8,7 +8,7 @@ data class ChannelModel(val guild_id: DiscordId<Guild>?,
                         val permission_overwrites: List<PermissionOverwrites>,
                         val topic: String?,
                         val position: Int,
-                        val last_message_id: DiscordId<Message>?,
+                        val last_message_id: DiscordId<PostedMessage>?,
                         val type: Type,
                         val id: DiscordId<Channel>,
                         val is_private: Boolean) {

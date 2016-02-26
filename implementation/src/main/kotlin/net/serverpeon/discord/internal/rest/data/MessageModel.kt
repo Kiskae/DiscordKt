@@ -1,10 +1,9 @@
 package net.serverpeon.discord.internal.rest.data
 
-import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
-import net.serverpeon.discord.model.Message
+import net.serverpeon.discord.model.PostedMessage
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -14,12 +13,12 @@ data class MessageModel(val nonce: String?,
                         val embeds: List<OEmbed>,
                         val timestamp: ZonedDateTime,
                         val mention_everyone: Boolean,
-                        val id: DiscordId<Message>,
+                        val id: DiscordId<PostedMessage>,
                         val edited_timestamp: ZonedDateTime?,
                         val author: UserModel,
                         val content: String,
                         val channel_id: DiscordId<Channel>,
-                        val mentions: List<JsonElement>) {
+                        val mentions: List<UserModel>) {
     data class Attachment(val width: Int?,
                           val url: URI,
                           val size: Int,

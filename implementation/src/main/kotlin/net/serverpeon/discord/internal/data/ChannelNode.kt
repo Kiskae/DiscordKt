@@ -9,6 +9,7 @@ import net.serverpeon.discord.internal.ws.data.inbound.Channels
 import net.serverpeon.discord.internal.ws.data.inbound.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.inbound.PrivateChannelModel
+import net.serverpeon.discord.message.Message
 import net.serverpeon.discord.model.*
 import rx.Completable
 import rx.Observable
@@ -161,6 +162,10 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
         override fun edit(): Channel.Public.Edit {
             throw UnsupportedOperationException()
         }
+
+        override fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage> {
+            throw UnsupportedOperationException()
+        }
     }
 
     data class OverrideData(val allow: PermissionSet, val deny: PermissionSet, val isMember: Boolean)
@@ -170,6 +175,10 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                                        override val recipient: UserNode) : ChannelNode(root, id), Channel.Private {
         override fun indicateTyping(): Completable {
             return root.api.Channels.postActivity(WrappedId(id)).rx()
+        }
+
+        override fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage> {
+            throw UnsupportedOperationException()
         }
 
         override val type: Channel.Type

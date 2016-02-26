@@ -22,8 +22,8 @@ interface Channels {
 
     @GET("channels/{channel_id}/messages")
     fun getMessages(@Path("channel_id") id: WrappedId<Channel>,
-                    @Query("before") before: WrappedId<Message>? = null,
-                    @Query("after") after: WrappedId<Message>? = null,
+                    @Query("before") before: WrappedId<PostedMessage>? = null,
+                    @Query("after") after: WrappedId<PostedMessage>? = null,
                     @Query("limit") limit: Int? = null): Call<List<MessageModel>>
 
     @POST("channels/{channel_id}/messages")
@@ -37,18 +37,18 @@ interface Channels {
 
     @PATCH("channels/{channel_id}/messages/{id}")
     fun editMessage(@Path("channel_id") id: WrappedId<Channel>,
-                    @Path("id") messageId: WrappedId<Message>,
+                    @Path("id") messageId: WrappedId<PostedMessage>,
                     @Body data: EditMessageRequest): Call<MessageModel>
 
     data class EditMessageRequest(val content: String, val mentions: List<DiscordId<User>>? = null)
 
     @DELETE("channels/{channel_id}/messages/{id}")
     fun deleteMessage(@Path("channel_id") id: WrappedId<Channel>,
-                      @Path("id") messageId: WrappedId<Message>): Call<Void>
+                      @Path("id") messageId: WrappedId<PostedMessage>): Call<Void>
 
     @POST("channels/{channel_id}/messages/{id}/ack")
     fun acknowledgeMessage(@Path("channel_id") id: WrappedId<Channel>,
-                           @Path("id") messageId: WrappedId<Message>): Call<Void>
+                           @Path("id") messageId: WrappedId<PostedMessage>): Call<Void>
 
     @PUT("channels/{channel_id}/permissions/{target_id}")
     fun changePermissionsUser(@Path("channel_id") channelId: WrappedId<Channel>,

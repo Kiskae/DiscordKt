@@ -1,6 +1,7 @@
 package net.serverpeon.discord.model
 
 import net.serverpeon.discord.interaction.Editable
+import net.serverpeon.discord.message.Message
 import rx.Completable
 import rx.Observable
 import java.util.concurrent.CompletableFuture
@@ -140,13 +141,20 @@ interface Channel : DiscordId.Identifiable<Channel> {
     interface Text {
 
         /**
-         * TODO: should text/voice be separated?
-         *
-         * @param msgSpec TODO
+         * Overload for [sendMessage] with textToSpeech set to null.
          */
-        //fun sendMessage(msgSpec: Nothing): Observable<Message>
+        fun sendMessage(message: Message) = sendMessage(message, null)
 
-        //TODO: message history
+        /**
+         * Sends the given message to the channel
+         *
+         * @param message The message to send
+         * @param textToSpeech Whether to mark the message for text-to-speech.
+         * @return A future that returns the message with additional information about the post.
+         */
+        fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage>
+
+        //TODO: message history (how to respect discord's resources...)
 
         /**
          * Subscribing to the returned completable will send a 'typing' state to discord.
@@ -170,7 +178,7 @@ interface Channel : DiscordId.Identifiable<Channel> {
 
     enum class Type {
         /**
-         * Standard text chat, receives [Message] as units of communication.
+         * Standard text chat, receives [PostedMessage] as units of communication.
          */
         TEXT,
         /**
@@ -178,7 +186,7 @@ interface Channel : DiscordId.Identifiable<Channel> {
          */
         VOICE,
         /**
-         * Direct message chat, for sending [Message] back and forth with a single person.
+         * Direct message chat, for sending [PostedMessage] back and forth with a single person.
          */
         PRIVATE
     }
