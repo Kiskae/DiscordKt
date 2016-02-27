@@ -21,7 +21,7 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
     val name: String
 
     /**
-     *
+     * The region in which this server is located.
      */
     val region: Region
 
@@ -52,31 +52,33 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
     fun getChannelByName(name: String): Observable<Channel.Public>
 
     /**
-     *
+     * Retrieves a list of all members that are a part of this guild.
      */
     val members: Observable<Member>
 
     /**
-     *
+     * Attempts to find a member with the given [id] within this server.
      */
     fun getMemberById(id: DiscordId<User>): Observable<Member>
 
     /**
-     *
+     * Finds all members with the username that matches [name].
+     * Since people can share usernames this method can return multiple members.
      */
     fun getMemberByName(name: String): Observable<Member>
 
     /**
-     *
+     * Retrieves a list of emoji which is made available to a group of members within this server.
      */
     val emoji: Observable<Emoji>
 
     /**
-     *
+     * Retrieves the member profile of the logged in user.
      */
     val selfAsMember: Member
 
     /**
+     * Unban user with the given [id].
      *
      * @throws PermissionException if the user does not have [PermissionSet.Permission.BAN_MEMBERS]
      */
@@ -112,44 +114,47 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
 
     interface Member : User, VoiceState, Editable<Member, Member.Edit> {
         /**
-         *
+         * Guild to which this member belongs
          */
         val guild: Guild
 
         /**
-         *
+         * DateTime when this user first joined the guild.
          */
         val joinedAt: ZonedDateTime
 
         /**
-         *
+         * The set of guild roles that have been assigned to this user.
          */
         val roles: Observable<Role>
 
         /**
-         *
+         * Availability status of this member
          */
         val status: Status
 
         /**
-         *
+         * Game that the user is currently reporting to Discord.
          */
         val currentGame: String?
 
         /**
-         *
+         * Resolves the active set of permissions for the given channel for this user.
          */
         fun permissionsFor(channel: Channel.Public): PermissionSet {
             return channel.permissionsFor(this)
         }
 
         /**
+         * Kicks this user from the guild.
+         *
          * @throws PermissionException if the user does not have [PermissionSet.Permission.KICK_MEMBERS]
          */
         @Throws(PermissionException::class)
         fun kick(): CompletableFuture<Void>
 
         /**
+         * Ban this user from the guild.
          *
          * @throws PermissionException if the user does not have [PermissionSet.Permission.BAN_MEMBERS]
          */
@@ -157,6 +162,9 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
         fun ban(clearLastXDays: Int? = null): CompletableFuture<DiscordId<User>>
 
         interface Edit : Editable.Transaction<Edit, Member> {
+            /**
+             * Change this set to add/remove roles from this user.
+             */
             var roles: MutableList<Role>
         }
 

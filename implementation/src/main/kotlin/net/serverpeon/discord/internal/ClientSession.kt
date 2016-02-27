@@ -173,6 +173,10 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         return getChannelById(id).filter { it.isPrivate }.cast(Channel.Private::class.java)
     }
 
+    override fun getPrivateChannelByUser(userId: DiscordId<User>): Observable<Channel.Private> {
+        return privateChannels().filter { it.recipient.id == userId }.first()
+    }
+
     override fun getAvailableServerRegions(): Observable<Region> {
         return apiWrapper.flatMap {
             it.Voice.serverRegions().rxObservable()
@@ -181,6 +185,10 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         }.map {
             GuildNode.from(it)
         }
+    }
+
+    override fun setStatus(game: String?, idle: Boolean): CompletableFuture<Void> {
+        throw NotImplementedError("Pending session stuff")
     }
 
     override fun eventBus(): EventBus {

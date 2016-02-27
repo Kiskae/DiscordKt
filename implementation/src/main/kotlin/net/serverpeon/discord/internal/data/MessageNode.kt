@@ -19,12 +19,12 @@ class MessageNode(val root: DiscordNode,
                   override val lastEdited: ZonedDateTime?,
                   override val rawContent: String,
                   override val id: DiscordId<PostedMessage>,
-                  override val poster: User,
+                  override val author: User,
                   val channel: ChannelNode) : PostedMessage {
     override val content: Message by lazy { parse(rawContent, root) }
 
     override fun edit(): PostedMessage.Edit {
-        if (poster.id != root.self.id) {
+        if (author.id != root.self.id) {
             channel.checkPermission(PermissionSet.Permission.MANAGE_MESSAGES)
         }
         return Transaction(content)

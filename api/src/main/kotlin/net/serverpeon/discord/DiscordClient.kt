@@ -5,42 +5,66 @@ import net.serverpeon.discord.model.*
 import rx.Completable
 import rx.Observable
 import java.util.*
+import java.util.concurrent.CompletableFuture
 
+/**
+ * The primary Discord client, through this class all of the data can be accessed and mutated.
+ *
+ * When this class is first created it will be inactive, if [startEmittingEvents] or one of the methods accessing the
+ * model data is called it will begin connecting to Discord's servers.
+ * This means that if the user wants to capture all events they should register their listeners to [eventBus] BEFORE
+ * taking any of the actions mentioned above.
+ */
 interface DiscordClient : AutoCloseable {
     /**
-     *
+     * Retrieve the list of guilds that the client's user is a part of.
      */
     fun guilds(): Observable<Guild>
 
     /**
-     *
+     * Looks up a guild by its unique ID, always returns either one or zero results.
      */
     fun getGuildById(id: DiscordId<Guild>): Observable<Guild>
 
     /**
-     *
+     * Attempt to look up a user, if the user has not been encountered in a guild/DM then this method will fail
+     * to return a result.
      */
     fun getUserById(id: DiscordId<User>): Observable<User>
 
     /**
-     *
+     * Retrieves a list of all direct messaging chats that the client's user is participating in.
      */
     fun privateChannels(): Observable<Channel.Private>
 
     /**
-     *
+     * Looks up a channel by its id. This can be both private channels as well as public channels belonging to a guild.
      */
     fun getChannelById(id: DiscordId<Channel>): Observable<Channel>
 
     /**
-     *
+     * Look up a private channel with the given id.
      */
     fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private>
 
     /**
-     *
+     * Look up a private channel by the id of the recipient.
+     */
+    fun getPrivateChannelByUser(userId: DiscordId<User>): Observable<Channel.Private>
+
+    /**
+     * Access a list of all available server regions.
+     * This is used to change the region of a server in [Guild.edit].
      */
     fun getAvailableServerRegions(): Observable<Region>
+
+    /**
+     * Set the game and idle state of the client's user.
+     *
+     * @param game String representing the 'game' being played.
+     * @param idle Whether the user should be marked as idle.
+     */
+    fun setStatus(game: String?, idle: Boolean = false): CompletableFuture<Void>
 
     /**
      * Signal that the client should connect to Discord and begin emitting events to the [eventBus].

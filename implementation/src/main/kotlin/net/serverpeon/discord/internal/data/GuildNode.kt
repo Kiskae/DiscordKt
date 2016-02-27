@@ -215,6 +215,10 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
 
     class RegionNode(override val id: String) : Region {
         override val continent: Region.Continent by lazy { guessContinent(id) }
+
+        override fun toString(): String {
+            return "Region(id='$id')"
+        }
     }
 
     companion object {

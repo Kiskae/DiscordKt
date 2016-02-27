@@ -1,5 +1,6 @@
 package net.serverpeon.discord.internal
 
+import net.serverpeon.discord.RateLimitException
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -8,9 +9,11 @@ import rx.Observable
 import rx.Single
 import rx.Subscriber
 import rx.subscriptions.Subscriptions
+import java.io.IOException
 import java.time.Duration
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
+import javax.websocket.Session
 
 fun Call<Void>.rx(): Completable {
     return this.internalToRx().toCompletable()
@@ -29,15 +32,14 @@ open class ResponseException(
         val response: Response<*>
 ) : RuntimeException("Call [${call.request().url()}] failed: [${response.message()}]")
 
-//TODO: move to API
-class RateLimitException(
-        call: Call<*>,
-        response: Response<*>,
-        val retryAfter: Duration
-) : ResponseException(call, response) {
-    override val message: String?
-        get() = "${super.message} - Retry after: $retryAfter"
-}
+class ImplRateLimitException(val call: Call<*>,
+                             val response: Response<*>,
+                             retryAfter: Duration)
+: RateLimitException(
+        "Call [${call.request().url()}] failed: [${response.message()}]",
+        retryAfter
+)
+
 
 private fun <T> Call<T>.internalToRx(): Observable<Response<T>> {
     return Observable.create { sub ->
@@ -67,7 +69,7 @@ private class RxCallback<T>(val sub: Subscriber<in Response<T>>) : Callback<T> {
             sub.onNext(response)
             sub.onCompleted()
         } else if (response.code() == 429) {
-            sub.onError(RateLimitException(call, response, response.headers().get("Retry-After")?.let {
+            sub.onError(ImplRateLimitException(call, response, response.headers().get("Retry-After")?.let {
                 Duration.ofMillis(it.toLong())
             } ?: Duration.ZERO))
         } else {
@@ -87,6 +89,24 @@ fun <T> CompletableFuture<T>.toObservable(): Observable<T> {
             }
         }
     }
+}
+
+fun Session.send(text: String): CompletableFuture<Void> {
+    val future = CompletableFuture<Void>()
+
+    if (isOpen) {
+        asyncRemote.sendText(text, { result ->
+            if (result.isOK) {
+                future.complete(null)
+            } else {
+                future.completeExceptionally(result.exception)
+            }
+        })
+    } else {
+        future.completeExceptionally(IOException("Trying to send to a closed socket."))
+    }
+
+    return future
 }
 
 fun <T> Call<T>.toFuture(): CompletableFuture<T> {
@@ -122,7 +142,7 @@ private class FutureCallback<T>(val future: CompletableFuture<T>) : Callback<T> 
         if (response.isSuccess) {
             future.complete(response.body())
         } else if (response.code() == 429) {
-            future.completeExceptionally(RateLimitException(call, response, response.headers().get("Retry-After")?.let {
+            future.completeExceptionally(ImplRateLimitException(call, response, response.headers().get("Retry-After")?.let {
                 Duration.ofMillis(it.toLong())
             } ?: Duration.ZERO))
         } else {
