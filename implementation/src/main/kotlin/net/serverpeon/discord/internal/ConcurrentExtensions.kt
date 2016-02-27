@@ -91,6 +91,22 @@ fun <T> CompletableFuture<T>.toObservable(): Observable<T> {
     }
 }
 
+fun <T> Observable<T>.toFuture(): CompletableFuture<T> {
+    val future = CompletableFuture<T>()
+    val subscription = this.last().subscribe({
+        future.complete(it)
+    }, {
+        future.completeExceptionally(it)
+    })
+    future.exceptionally ({ th ->
+        if (th is CancellationException) {
+            subscription.unsubscribe()
+        }
+        null as Nothing
+    })
+    return future
+}
+
 fun Session.send(text: String): CompletableFuture<Void> {
     val future = CompletableFuture<Void>()
 

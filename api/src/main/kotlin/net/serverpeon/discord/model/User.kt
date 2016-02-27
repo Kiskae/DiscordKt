@@ -1,5 +1,8 @@
 package net.serverpeon.discord.model
 
+import net.serverpeon.discord.message.Message
+import java.util.concurrent.CompletableFuture
+
 /**
  * Represents a user on the Discord servers
  */
@@ -21,6 +24,11 @@ interface User : DiscordId.Identifiable<User> {
      * Unique id that can be used to retrieve the current avatar of this user
      */
     val avatar: DiscordId<Avatar>?
+
+    /**
+     *
+     */
+    fun sendMessage(message: Message): CompletableFuture<PostedMessage>
 
     interface Avatar : DiscordId.Identifiable<Avatar>
 }

@@ -11,13 +11,13 @@ interface Guilds {
     @POST("guilds")
     fun createGuild(@Body data: CreateGuildRequest): Call<GuildModel>
 
-    data class CreateGuildRequest(val name: String, val region: String, val icon: String? = null)
+    data class CreateGuildRequest(val name: String, val region: Region, val icon: String? = null)
 
     @PATCH("guilds/{guild_id}")
     fun editGuild(@Path("guild_id") id: WrappedId<Guild>, @Body data: EditGuildRequest): Call<GuildModel>
 
     data class EditGuildRequest(val name: String,
-                                val region: String? = null,
+                                val region: Region? = null,
                                 val icon: String? = null,
                                 val afk_channel_id: DiscordId<Channel>? = null,
                                 val afk_timeout: Duration? = null)

@@ -1,7 +1,10 @@
 package net.serverpeon.discord.internal.rest.retro
 
 import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.ws.data.inbound.PrivateChannelModel
+import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
+import net.serverpeon.discord.model.User
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -22,6 +25,12 @@ interface Users {
         @Deprecated("Unfinished")
         fun editProfile()
     }
+
+    @POST("users/{id}/channels")
+    fun createPrivateChannel(@Path("id") myId: WrappedId<User>,
+                             @Body data: PrivateChannelCreate): Call<PrivateChannelModel>
+
+    data class PrivateChannelCreate(val recipient_id: DiscordId<User>)
 
     @GET("users/{user_id}/avatars/{avatar_id}.jpg")
     @Streaming

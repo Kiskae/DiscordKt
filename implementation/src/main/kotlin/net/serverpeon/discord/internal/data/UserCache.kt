@@ -6,7 +6,7 @@ import net.serverpeon.discord.internal.rest.data.UserModel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.User
 
-class UserCache {
+class UserCache(private val root: DiscordNode) {
     private val cache: Cache<DiscordId<User>, UserNode> = CacheBuilder.newBuilder()
             .weakValues()
             .build()
@@ -20,7 +20,7 @@ class UserCache {
     }
 
     fun retrieve(id: DiscordId<User>, model: UserModel): UserNode {
-        return cache[id, { UserNode.from(model) }]
+        return cache[id, { UserNode.from(model, root) }]
     }
 
     fun retrieve(id: DiscordId<User>, node: WhoamiNode): UserNode {

@@ -2,8 +2,11 @@ package net.serverpeon.discord.internal.data
 
 import net.serverpeon.discord.internal.rest.data.SelfModel
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
+import net.serverpeon.discord.message.Message
 import net.serverpeon.discord.model.DiscordId
+import net.serverpeon.discord.model.PostedMessage
 import net.serverpeon.discord.model.User
+import java.util.concurrent.CompletableFuture
 
 class WhoamiNode(val root: DiscordNode,
                  override val id: DiscordId<User>,
@@ -24,6 +27,9 @@ class WhoamiNode(val root: DiscordNode,
         return "Self(id=$id, username='$username', discriminator='$discriminator', avatar=$avatar, email='$email')"
     }
 
+    override fun sendMessage(message: Message): CompletableFuture<PostedMessage> {
+        throw IllegalStateException("Why are you trying to send a message to yourself!")
+    }
 
     companion object {
         fun from(self: SelfModel, root: DiscordNode): WhoamiNode {

@@ -12,7 +12,7 @@ import rx.Observable
 import kotlin.properties.Delegates
 
 class DiscordNode(val api: ApiWrapper) : Event.Visitor {
-    internal val userCache = UserCache()
+    internal val userCache = UserCache(this)
     internal var guildMap = createEmptyMap<Guild, GuildNode>()
     internal var channelMap = createEmptyMap<Channel, ChannelNode>()
     internal var self: WhoamiNode by Delegates.notNull()

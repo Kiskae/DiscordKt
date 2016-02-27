@@ -7,6 +7,7 @@ import net.serverpeon.discord.internal.rest.data.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Guilds.EditMemberRequest
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.*
+import net.serverpeon.discord.message.Message
 import net.serverpeon.discord.model.*
 import rx.Observable
 import java.time.ZonedDateTime
@@ -92,6 +93,10 @@ class MemberNode(override val guild: GuildNode,
         return guild.root.api.Guilds.addBan(WrappedId(guild.id), WrappedId(id), clearLastXDays).toFuture().thenApply {
             id
         }
+    }
+
+    override fun sendMessage(message: Message): CompletableFuture<PostedMessage> {
+        return userNode.sendMessage(message)
     }
 
     override fun edit(): Guild.Member.Edit {
