@@ -7,13 +7,11 @@ import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.internal.data.DiscordNode
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
-import net.serverpeon.discord.internal.rxObservable
 import net.serverpeon.discord.internal.ws.RetryHandler
 import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
-import net.serverpeon.discord.internal.toObservable
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
@@ -23,6 +21,7 @@ import rx.Observable
 import rx.Single
 import rx.Subscription
 import rx.observables.ConnectableObservable
+import rx.schedulers.Schedulers
 import rx.subjects.BehaviorSubject
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.locks.Lock
@@ -141,33 +140,33 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun guilds(): Observable<Guild> {
-        return ensureSafeModelAccess().andThen(model).flatMap { it.guilds }
+        return ensureSafeModelAccess().flatMap { it.guilds }
     }
 
     fun repr(): Single<String> {
-        return ensureSafeModelAccess().andThen(model).map { it.toString() }.toSingle()
+        return ensureSafeModelAccess().map { it.toString() }.toSingle()
     }
 
     override fun getGuildById(id: DiscordId<Guild>): Observable<Guild> {
-        return ensureSafeModelAccess().andThen(model).flatMap {
+        return ensureSafeModelAccess().flatMap {
             it.getGuildById(id)
         }
     }
 
     override fun getUserById(id: DiscordId<User>): Observable<User> {
-        return ensureSafeModelAccess().andThen(model).flatMap {
+        return ensureSafeModelAccess().flatMap {
             it.getUserById(id)
         }
     }
 
     override fun privateChannels(): Observable<Channel.Private> {
-        return ensureSafeModelAccess().andThen(model).flatMap {
+        return ensureSafeModelAccess().flatMap {
             it.privateChannels
         }
     }
 
     override fun getChannelById(id: DiscordId<Channel>): Observable<Channel> {
-        return ensureSafeModelAccess().andThen(model).flatMap {
+        return ensureSafeModelAccess().flatMap {
             it.getChannelById(id)
         }
     }
@@ -190,19 +189,21 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         }
     }
 
-    // Ensures the eventStream is initialized so we have access to the model
-    // Failure conditions will result in a failed completable
-    private fun ensureSafeModelAccess(): Completable {
-        return Completable.defer {
-            sessionLock.withLock {
-                if (!closeFuture.isDone) {
-                    eventStreamSubscription.getOrInit() //Ensure the event-stream is connected
-                    Completable.complete()
-                } else {
-                    closeFuture().doOnTerminate { throw DiscordClient.AccessAfterCloseException() }
-                }
+    private val modelAccess = Completable.defer {
+        sessionLock.withLock {
+            if (!closeFuture.isDone) {
+                eventStreamSubscription.getOrInit() //Ensure the event-stream is connected
+                Completable.complete()
+            } else {
+                closeFuture().doOnTerminate { throw DiscordClient.AccessAfterCloseException() }
             }
         }
+    }.andThen(model).observeOn(Schedulers.computation())
+
+    // Ensures the eventStream is initialized so we have access to the model
+    // Failure conditions will result in a failed completable
+    private fun ensureSafeModelAccess(): Observable<DiscordNode> {
+        return modelAccess
     }
 
     override fun logout(): Completable {
