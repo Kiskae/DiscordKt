@@ -37,7 +37,8 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
 
     override fun messageHistory(limit: Int): Observable<PostedMessage> {
         checkPermission(PermissionSet.Permission.READ_MESSAGE_HISTORY)
-        Observable.concat<List<MessageModel>>(Observable.create { sub -> //TODO: some sort of rate limiting mechanism
+        return Observable.concat<List<MessageModel>>(Observable.create { sub ->
+            //TODO: some sort of rate limiting mechanism
             var currentLimit = limit
             var lastMessage: MessageModel? = null
             sub.setProducer {
@@ -62,8 +63,7 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
             }
         }).flatMapIterable {
             it
-        }.subscribe { println(it) } //TODO: map to PostedMessage
-        return Observable.empty()
+        }.map { MessageNode.from(it, root) }
     }
 
     override fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage> {
@@ -222,6 +222,7 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
         }
 
         override fun edit(): Channel.Public.Edit {
+            //FIXME
             throw UnsupportedOperationException()
         }
     }

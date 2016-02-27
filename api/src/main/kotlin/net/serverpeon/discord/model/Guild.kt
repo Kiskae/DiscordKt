@@ -52,6 +52,17 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
     fun getChannelByName(name: String): Observable<Channel.Public>
 
     /**
+     * Creates a new channel of the specified type.
+     *
+     * @param name Name of the new channel, must be between 2 and 100 characters.
+     * @param type Type of the new channel, must be either [Channel.Type.TEXT] or [Channel.Type.VOICE]
+     * @return Future of the newly created channel.
+     * @throws PermissionException if the permission [PermissionSet.Permission.MANAGE_CHANNELS] is missing.
+     */
+    @Throws(PermissionException::class)
+    fun createChannel(name: String, type: Channel.Type): CompletableFuture<Channel.Public>
+
+    /**
      * Retrieves a list of all members that are a part of this guild.
      */
     val members: Observable<Member>
@@ -66,6 +77,21 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
      * Since people can share usernames this method can return multiple members.
      */
     fun getMemberByName(name: String): Observable<Member>
+
+    /**
+     * Retrieve a list of all roles defined on this server.
+     */
+    val roles: Observable<Role>
+
+    /**
+     * Creates a new role on the server.
+     * Since roles are created and then edited to give them content, this method directly returns the
+     * [Role] editing interface.
+     *
+     * @throws PermissionException if requirement [PermissionSet.Permission.MANAGE_ROLES] is missing.
+     */
+    @Throws(PermissionException::class)
+    fun createRole(): CompletableFuture<Role.Edit>
 
     /**
      * Retrieves a list of emoji which is made available to a group of members within this server.

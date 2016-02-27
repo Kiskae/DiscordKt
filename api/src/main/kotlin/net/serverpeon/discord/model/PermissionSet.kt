@@ -107,8 +107,7 @@ data class PermissionSet internal constructor(private val permissions: EnumSet<P
          */
         BAN_MEMBERS,
         /**
-         * FIXME: guild role creations
-         * Required for [Role.edit] and [Role.delete]
+         * Required for [Guild.createRole], [Role.edit] and [Role.delete]
          */
         MANAGE_ROLES,
         /**
@@ -116,8 +115,8 @@ data class PermissionSet internal constructor(private val permissions: EnumSet<P
          */
         MANAGE_PERMISSIONS,
         /**
-         * FIXME: channel creation
-         * Required for [Channel.Public.edit] and [Channel.Public.delete] on all channels on the server.
+         * Required for [Guild.createChannel], [Channel.Public.edit] and [Channel.Public.delete] on all channels on the
+         * server.
          */
         MANAGE_CHANNELS,
         /**

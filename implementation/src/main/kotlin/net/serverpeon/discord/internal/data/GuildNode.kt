@@ -1,9 +1,11 @@
 package net.serverpeon.discord.internal.data
 
 import com.google.common.collect.ImmutableList
+import net.serverpeon.discord.internal.rest.data.ChannelModel
 import net.serverpeon.discord.internal.rest.data.GuildModel
 import net.serverpeon.discord.internal.rest.data.RegionModel
 import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.rest.retro.Guilds.ChannelCreationRequest
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.*
 import net.serverpeon.discord.model.*
@@ -45,6 +47,34 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
     override fun getChannelByName(name: String): Observable<Channel.Public> {
         val sanitizedName = ChannelNode.sanitizeChannelName(name)
         return channels.filter { it.name == sanitizedName }
+    }
+
+    override fun createChannel(name: String, type: Channel.Type): CompletableFuture<Channel.Public> {
+        check(type != Channel.Type.PRIVATE) { "Cannot create a PRIVATE channel in a public guild." }
+
+        selfAsMember.checkPermission(this, PermissionSet.Permission.MANAGE_CHANNELS)
+
+        return root.api.Guilds.createChannel(WrappedId(id), ChannelCreationRequest(
+                name = name,
+                type = type.let {
+                    if (it == Channel.Type.TEXT) {
+                        ChannelModel.Type.TEXT
+                    } else {
+                        ChannelModel.Type.VOICE
+                    }
+                }
+        )).toFuture().thenApply { ChannelNode.from(it, this, root) }
+    }
+
+    override val roles: Observable<Role>
+        get() = observableList<Role, Role> { roleMap.values }
+
+    override fun createRole(): CompletableFuture<Role.Edit> {
+        return root.api.Guilds.createRole(WrappedId(id))
+                .toFuture()
+                .thenApply {
+                    RoleNode.from(it, this, root)
+                }.thenApply { it.edit() }
     }
 
     override val members: Observable<Guild.Member>
@@ -176,10 +206,12 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
             }
 
         override fun commit(): CompletableFuture<Guild> {
+            //FIXME
             throw UnsupportedOperationException()
         }
 
         override fun abort() {
+            //FIXME
             throw UnsupportedOperationException()
         }
     }
