@@ -16,9 +16,14 @@ import java.util.concurrent.CompletableFuture
  */
 interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, Deletable {
     /**
-     *
+     * Name of the guild, it appears this can contain pretty much any characters.
      */
     val name: String
+
+    /**
+     *
+     */
+    val region: Region
 
     /**
      * Retrieves a list of all channels in this guild.
@@ -26,12 +31,23 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
     val channels: Observable<Channel.Public>
 
     /**
+     * Attempts to find and return the channel with the given id.
      *
+     * @param id Identifier of the targeted channel.
+     * @return Either an empty observable or one that returns the channel with the given id.
      */
     fun getChannelById(id: DiscordId<Channel>): Observable<Channel.Public>
 
     /**
+     * Lazily attempt to find a channel with the given name, if the availability of channels changes between calls to
+     * [Observable.subscribe] then this method can return different results.
      *
+     * This can return multiple channels since channel names are not unique.
+     *
+     * When looking for a specific channel prefer [getChannelById].
+     *
+     * @param name Name of the channel for which to search.
+     * @return Lazy observable representing all channels that have the given name as [Channel.Public.name].
      */
     fun getChannelByName(name: String): Observable<Channel.Public>
 
@@ -76,7 +92,7 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
         /**
          * Region in which the server is deployed.
          */
-        var region: String //FIXME: Region object
+        var region: Region
 
         /**
          * Channel in which users will be placed if they do not speak for [afkTimeout] time.

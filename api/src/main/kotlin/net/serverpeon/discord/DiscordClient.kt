@@ -1,10 +1,7 @@
 package net.serverpeon.discord
 
 import com.google.common.eventbus.EventBus
-import net.serverpeon.discord.model.Channel
-import net.serverpeon.discord.model.DiscordId
-import net.serverpeon.discord.model.Guild
-import net.serverpeon.discord.model.User
+import net.serverpeon.discord.model.*
 import rx.Completable
 import rx.Observable
 import java.util.*
@@ -39,6 +36,11 @@ interface DiscordClient : AutoCloseable {
      *
      */
     fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private>
+
+    /**
+     *
+     */
+    fun getAvailableServerRegions(): Observable<Region>
 
     /**
      * Signal that the client should connect to Discord and begin emitting events to the [eventBus].

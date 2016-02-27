@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.jakewharton.rxrelay.BehaviorRelay
 import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.internal.data.DiscordNode
+import net.serverpeon.discord.internal.data.GuildNode
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
 import net.serverpeon.discord.internal.ws.RetryHandler
@@ -12,10 +13,7 @@ import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
-import net.serverpeon.discord.model.Channel
-import net.serverpeon.discord.model.DiscordId
-import net.serverpeon.discord.model.Guild
-import net.serverpeon.discord.model.User
+import net.serverpeon.discord.model.*
 import rx.Completable
 import rx.Observable
 import rx.Single
@@ -173,6 +171,16 @@ class ClientSession(apiSource: Single<ApiWrapper>,
 
     override fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private> {
         return getChannelById(id).filter { it.isPrivate }.cast(Channel.Private::class.java)
+    }
+
+    override fun getAvailableServerRegions(): Observable<Region> {
+        return apiWrapper.flatMap {
+            it.Voice.serverRegions().rxObservable()
+        }.flatMapIterable {
+            it
+        }.map {
+            GuildNode.from(it)
+        }
     }
 
     override fun eventBus(): EventBus {

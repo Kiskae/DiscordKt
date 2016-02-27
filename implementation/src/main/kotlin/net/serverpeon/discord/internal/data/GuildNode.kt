@@ -2,6 +2,7 @@ package net.serverpeon.discord.internal.data
 
 import com.google.common.collect.ImmutableList
 import net.serverpeon.discord.internal.rest.data.GuildModel
+import net.serverpeon.discord.internal.rest.data.RegionModel
 import net.serverpeon.discord.internal.rest.data.WrappedId
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.*
@@ -12,7 +13,8 @@ import java.util.concurrent.CompletableFuture
 import kotlin.properties.Delegates
 
 class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, override var name: String,
-                val ownerId: DiscordId<User>) : Guild, Event.Visitor {
+                val ownerId: DiscordId<User>,
+                override var region: Region) : Guild, Event.Visitor {
     internal var channelMap = createEmptyMap<Channel, ChannelNode.Public>()
     internal var roleMap = createEmptyMap<Role, RoleNode>()
         set(e: Map<DiscordId<Role>, RoleNode>) {
@@ -42,7 +44,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
 
     override fun getChannelByName(name: String): Observable<Channel.Public> {
         val sanitizedName = ChannelNode.sanitizeChannelName(name)
-        return channels.filter { it.name == sanitizedName }.first()
+        return channels.filter { it.name == sanitizedName }
     }
 
     override val members: Observable<Guild.Member>
@@ -64,6 +66,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
     override fun guildUpdate(e: Guilds.General.Update) {
         e.guild.let {
             name = it.name
+            region = RegionNode(it.region)
         }
     }
 
@@ -154,12 +157,12 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
     override fun edit(): Guild.Edit {
         selfAsMember.checkPermission(this, PermissionSet.Permission.MANAGE_SERVER)
 
-        return Transaction(name, "derp", null, Duration.ZERO)
+        return Transaction(name, region, null, Duration.ZERO)
     }
 
-    class Transaction(override var name: String, region: String,
+    class Transaction(override var name: String, region: Region,
                       afkChannel: Channel.Public?, afkTimeout: Duration) : Guild.Edit {
-        override var region: String = region
+        override var region: Region = region
             set(value) {
                 field = value //TODO: DIRTY MARKING
             }
@@ -210,7 +213,32 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
         }
     }
 
+    class RegionNode(override val id: String) : Region {
+        override val continent: Region.Continent by lazy { guessContinent(id) }
+    }
+
     companion object {
+        private fun guessContinent(regionId: String): Region.Continent {
+            return when (regionId) {
+                "amsterdam" -> Region.Continent.EUROPE
+                "frankfurt" -> Region.Continent.EUROPE
+                "london" -> Region.Continent.EUROPE
+                "singapore" -> Region.Continent.ASIA
+                "sydney" -> Region.Continent.AUSTRALIA
+                else -> {
+                    if (regionId.startsWith("us-")) {
+                        Region.Continent.NORTH_AMERICA
+                    } else {
+                        Region.Continent.UNKNOWN
+                    }
+                }
+            }
+        }
+
+        fun from(data: RegionModel): RegionNode {
+            return RegionNode(data.id)
+        }
+
         private fun parseEmoji(model: GuildModel.DataEmoji, guildNode: GuildNode): EmojiNode {
             return EmojiNode(
                     ImmutableList.copyOf(model.roles.map { guildNode.roleMap[it]!! }),
@@ -222,7 +250,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
         }
 
         fun from(data: ReadyEventModel.ExtendedGuild, root: DiscordNode): GuildNode {
-            val guildNode = GuildNode(root, data.id, data.name, data.owner_id)
+            val guildNode = GuildNode(root, data.id, data.name, data.owner_id, RegionNode(data.region))
 
             val presences = data.presences.map { it.user.id to it }.toMap()
             val voiceStates = data.voice_states.map { it.user_id to it }.toMap()
