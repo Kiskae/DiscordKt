@@ -76,7 +76,7 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                 message.encodedContent,
                 mentions = if (mentions.isNotEmpty()) mentions else null,
                 tts = textToSpeech
-        )).toFuture().thenApply { error("Not Yet Implemented") }
+        )).toFuture().thenApply { MessageNode.from(it, root) }
     }
 
     abstract fun checkPermission(perm: PermissionSet.Permission)
