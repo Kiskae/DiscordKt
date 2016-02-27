@@ -8,6 +8,7 @@ import net.serverpeon.discord.internal.data.DiscordNode
 import net.serverpeon.discord.internal.data.GuildNode
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
+import net.serverpeon.discord.internal.rest.retro.Guilds
 import net.serverpeon.discord.internal.ws.RetryHandler
 import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.Event
@@ -149,6 +150,19 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         return ensureSafeModelAccess().flatMap {
             it.getGuildById(id)
         }
+    }
+
+    override fun createGuild(name: String, region: Region): CompletableFuture<Guild> {
+        return ensureSafeModelAccess().flatMap { model ->
+            apiWrapper.flatMap {
+                it.Guilds.createGuild(Guilds.CreateGuildRequest(
+                        name = name,
+                        region = region
+                )).rxObservable()
+            }.map {
+                GuildNode.from(it, model) as Guild
+            }
+        }.toFuture()
     }
 
     override fun getUserById(id: DiscordId<User>): Observable<User> {

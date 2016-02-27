@@ -285,6 +285,11 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
             )
         }
 
+        fun from(data: GuildModel, root: DiscordNode): GuildNode {
+            val guildNode = GuildNode(root, data.id, data.name, data.owner_id, RegionNode(data.region))
+            return guildNode
+        }
+
         fun from(data: ReadyEventModel.ExtendedGuild, root: DiscordNode): GuildNode {
             val guildNode = GuildNode(root, data.id, data.name, data.owner_id, RegionNode(data.region))
 

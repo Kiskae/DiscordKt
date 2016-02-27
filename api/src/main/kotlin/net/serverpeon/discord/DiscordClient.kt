@@ -27,6 +27,15 @@ interface DiscordClient : AutoCloseable {
     fun getGuildById(id: DiscordId<Guild>): Observable<Guild>
 
     /**
+     * Creates a new guild named [name].
+     *
+     * @param name Name of the new server, must be between 2-100 characters long.
+     * @param region Region in which the server should be located. Regions can be retrieved through
+     *               [getAvailableServerRegions].
+     */
+    fun createGuild(name: String, region: Region): CompletableFuture<Guild>
+
+    /**
      * Attempt to look up a user, if the user has not been encountered in a guild/DM then this method will fail
      * to return a result.
      */
