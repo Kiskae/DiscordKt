@@ -10,20 +10,44 @@ import rx.Observable
 import java.util.*
 
 interface DiscordClient : AutoCloseable {
+    /**
+     *
+     */
     fun guilds(): Observable<Guild>
-
-    fun getGuildById(id: DiscordId<Guild>): Observable<Guild>
-
-    fun getUserById(id: DiscordId<User>): Observable<User>
-
-    fun privateChannels(): Observable<Channel.Private>
-
-    fun getChannelById(id: DiscordId<Channel>): Observable<Channel>
-
-    fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private>
 
     /**
      *
+     */
+    fun getGuildById(id: DiscordId<Guild>): Observable<Guild>
+
+    /**
+     *
+     */
+    fun getUserById(id: DiscordId<User>): Observable<User>
+
+    /**
+     *
+     */
+    fun privateChannels(): Observable<Channel.Private>
+
+    /**
+     *
+     */
+    fun getChannelById(id: DiscordId<Channel>): Observable<Channel>
+
+    /**
+     *
+     */
+    fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private>
+
+    /**
+     * Signal that the client should connect to Discord and begin emitting events to the [eventBus].
+     *
+     * Beware that accessing any of the data sources on this class causes the client to connect to Discord; In these
+     * cases the user might miss events since the [eventBus] is not hooked up to the event stream yet.
+     *
+     * If the user wants to receive events then this method needs to be called after registering their listeners but
+     * before accessing any of the information.
      */
     fun startEmittingEvents()
 

@@ -1,8 +1,11 @@
 package net.serverpeon.discord.model
 
+/**
+ * Represents a user on the Discord servers
+ */
 interface User : DiscordId.Identifiable<User> {
     /**
-     * @property username The current username of this user
+     * @property username The current username of this user, this name is NOT unique.
      */
     val username: String
 

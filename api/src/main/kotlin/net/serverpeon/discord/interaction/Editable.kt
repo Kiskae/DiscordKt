@@ -11,6 +11,7 @@ interface Editable<T : Editable<T, G>, G : Editable.Transaction<G, T>> {
     /**
      * Start a new transaction to change the given resource.
      */
+    @Throws(PermissionException::class)
     fun edit(): G
 
     interface Transaction<G : Transaction<G, T>, T : Editable<T, G>> {

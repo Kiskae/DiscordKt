@@ -1,6 +1,8 @@
 package net.serverpeon.discord.model
 
+import net.serverpeon.discord.interaction.Deletable
 import net.serverpeon.discord.interaction.Editable
+import net.serverpeon.discord.interaction.PermissionException
 import net.serverpeon.discord.message.Message
 import rx.Completable
 import rx.Observable
@@ -10,7 +12,7 @@ import java.util.concurrent.CompletableFuture
  * A channel is a line of communication in Discord.
  * Channels can either exist within a guild ([Public]) or happen between two people ([Private]).
  */
-interface Channel : DiscordId.Identifiable<Channel> {
+interface Channel : DiscordId.Identifiable<Channel>, Deletable {
     /**
      * Indicates whether this is a private or a public (guild) channel.
      *
@@ -89,7 +91,9 @@ interface Channel : DiscordId.Identifiable<Channel> {
          * @param member Target to customize the permissions for.
          * @return Future that will complete when the change has been applied, will return the permissions effective
          *         after applying the change.
+         * @throws PermissionException if the permission [PermissionSet.Permission.MANAGE_PERMISSIONS] is missing.
          */
+        @Throws(PermissionException::class)
         fun setOverride(allow: PermissionSet, deny: PermissionSet, member: Guild.Member): CompletableFuture<PermissionSet>
 
         /**
@@ -103,7 +107,9 @@ interface Channel : DiscordId.Identifiable<Channel> {
          * @param role Target to customize the permissions for.
          * @return Future that will complete when the change has been applied, will return the permissions effective
          *         after applying the change.
+         * @throws PermissionException if the permission [PermissionSet.Permission.MANAGE_PERMISSIONS] is missing.
          */
+        @Throws(PermissionException::class)
         fun setOverride(allow: PermissionSet, deny: PermissionSet, role: Role): CompletableFuture<PermissionSet>
 
         interface Edit : Editable.Transaction<Edit, Public> {
@@ -143,6 +149,7 @@ interface Channel : DiscordId.Identifiable<Channel> {
         /**
          * Overload for [sendMessage] with textToSpeech set to null.
          */
+        @Throws(PermissionException::class)
         fun sendMessage(message: Message) = sendMessage(message, null)
 
         /**
@@ -152,9 +159,14 @@ interface Channel : DiscordId.Identifiable<Channel> {
          * @param textToSpeech Whether to mark the message for text-to-speech.
          * @return A future that returns the message with additional information about the post.
          */
+        @Throws(PermissionException::class)
         fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage>
 
-        //TODO: message history (how to respect discord's resources...)
+        /**
+         *
+         */
+        @Throws(PermissionException::class)
+        fun messageHistory(limit: Int): Observable<PostedMessage>
 
         /**
          * Subscribing to the returned completable will send a 'typing' state to discord.
