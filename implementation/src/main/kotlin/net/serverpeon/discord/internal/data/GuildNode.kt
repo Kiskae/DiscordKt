@@ -1,22 +1,27 @@
 package net.serverpeon.discord.internal.data
 
 import com.google.common.collect.ImmutableList
+import net.serverpeon.discord.interaction.Editable
 import net.serverpeon.discord.internal.rest.data.ChannelModel
 import net.serverpeon.discord.internal.rest.data.GuildModel
 import net.serverpeon.discord.internal.rest.data.RegionModel
 import net.serverpeon.discord.internal.rest.data.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Guilds.ChannelCreationRequest
+import net.serverpeon.discord.internal.rest.retro.Guilds.EditGuildRequest
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.*
 import net.serverpeon.discord.model.*
 import rx.Observable
 import java.time.Duration
+import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.properties.Delegates
 
 class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, override var name: String,
                 val ownerId: DiscordId<User>,
                 override var region: Region) : Guild, Event.Visitor {
+    private val changeId = AtomicInteger(0)
     internal var channelMap = createEmptyMap<Channel, ChannelNode.Public>()
     internal var roleMap = createEmptyMap<Role, RoleNode>()
         set(e: Map<DiscordId<Role>, RoleNode>) {
@@ -190,30 +195,59 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
         return Transaction(name, region, null, Duration.ZERO)
     }
 
-    class Transaction(override var name: String, region: Region,
-                      afkChannel: Channel.Public?, afkTimeout: Duration) : Guild.Edit {
+    inner class Transaction(override var name: String, region: Region,
+                            afkChannel: Channel.Public?, afkTimeout: Duration) : Guild.Edit {
+        private var aborted: TransactionTristate = TransactionTristate.AWAIT
+        private val changeIdAtInit = changeId.get()
+        private val changed = EnumSet.noneOf(GuildEditFlags::class.java)
+
         override var region: Region = region
             set(value) {
-                field = value //TODO: DIRTY MARKING
+                field = value
+                changed.add(GuildEditFlags.REGION)
             }
         override var afkChannel: Channel.Public? = afkChannel
             set(value) {
                 field = value
+                changed.add(GuildEditFlags.AFK_CHANNEL)
             }
         override var afkTimeout: Duration = afkTimeout
             set(value) {
                 field = value
+                changed.add(GuildEditFlags.AFK_TIMEOUT)
             }
 
         override fun commit(): CompletableFuture<Guild> {
-            //FIXME
-            throw UnsupportedOperationException()
+            if (changeId.compareAndSet(changeIdAtInit, changeIdAtInit + 1)) {
+                throw Editable.ResourceChangedException(this@GuildNode)
+            } else if (aborted == TransactionTristate.ABORTED) {
+                throw Editable.AbortedTransactionException()
+            } else if (aborted == TransactionTristate.COMPLETED) {
+                throw IllegalStateException("Don't call complete() twice")
+            } else {
+                aborted = TransactionTristate.COMPLETED
+                return root.api.Guilds.editGuild(WrappedId(id), EditGuildRequest(
+                        name = name,
+                        region = if (GuildEditFlags.REGION in changed) region else null,
+                        afk_channel_id = if (GuildEditFlags.AFK_CHANNEL in changed) afkChannel?.let { it.id } else null,
+                        afk_timeout = if (GuildEditFlags.AFK_TIMEOUT in changed) afkTimeout else null
+                )).toFuture().thenApply { GuildNode.from(it, root) }
+            }
         }
 
         override fun abort() {
-            //FIXME
-            throw UnsupportedOperationException()
+            if (aborted == TransactionTristate.AWAIT) {
+                aborted = TransactionTristate.ABORTED
+            } else if (aborted == TransactionTristate.COMPLETED) {
+                throw IllegalArgumentException("abort() after complete()")
+            }
         }
+    }
+
+    private enum class GuildEditFlags {
+        REGION,
+        AFK_CHANNEL,
+        AFK_TIMEOUT
     }
 
     override fun delete(): CompletableFuture<Void> {

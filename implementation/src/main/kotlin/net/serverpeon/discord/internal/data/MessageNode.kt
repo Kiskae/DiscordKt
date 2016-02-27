@@ -78,8 +78,94 @@ class MessageNode(val root: DiscordNode,
         }
 
         fun parse(content: String, root: DiscordNode): Message {
-            //TODO: implement parsing of channel/user/emoji
-            return Message.Builder().append(content).build()
+            val len = content.length
+            var i = 0
+            val builder = Message.Builder()
+            while (i < len) {
+                val specialEsc = content.indexOf('<', i)
+                val codeBlockEsc = content.indexOf("```", i)
+                if (isBefore(specialEsc, listOf(codeBlockEsc))) {
+                    // Opening <, check next character
+                    if (specialEsc + 1 < len) {
+                        i = when (content[specialEsc + 1]) {
+                            '#' -> {
+                                parseTag(i, specialEsc, content, builder) { str, b ->
+                                    //                                      cut off @
+                                    val channel = root.channelMap[DiscordId(str.substring(1))]
+                                    if (channel is ChannelNode.Public) {
+                                        b.append(channel)
+                                    } else {
+                                        b.append(str)
+                                    }
+                                }
+                            }
+                            '@' -> {
+                                parseTag(i, specialEsc, content, builder) { str, b ->
+                                    val user = root.userCache.retrieve(DiscordId(str.substring(1)))
+                                    if (user != null) {
+                                        b.append(user)
+                                    } else {
+                                        b.append(str)
+                                    }
+                                }
+                            }
+                            else -> {
+                                builder.append(content.substring(i..specialEsc))
+                                specialEsc + 1
+                            }
+                        }
+                    } else {
+                        // Append final part of the string
+                        builder.append(content.substring(i))
+                    }
+                } else if (isBefore(codeBlockEsc, listOf(specialEsc))) {
+                    if (codeBlockEsc + 3 < len) {
+                        val closingChars = content.indexOf("```", codeBlockEsc + 4)
+                        if (closingChars != -1) {
+                            val code = content.substring((codeBlockEsc + 3)..(closingChars - 1))
+                            val parts = code.split(' ', limit = 2)
+                            builder.appendCodeBlock(parts[1], parts[0])
+                            i = closingChars + 3
+                        } else {
+                            //Just append all the text until after the ```
+                            builder.append(content.substring(i..(codeBlockEsc + 2)))
+                            i = codeBlockEsc + 3
+                        }
+                    } else {
+                        //Just append all the text until after the ```
+                        builder.append(content.substring(i..(codeBlockEsc + 2)))
+                        i = codeBlockEsc + 3
+                    }
+                } else {
+                    // No tags left, just append the test of the string
+                    builder.append(content.substring(i))
+                }
+            }
+
+            return builder.build()
+        }
+
+        private fun parseTag(previousIndex: Int, locationOfBracket: Int, source: String, builder: Message.Builder,
+                             handler: (String, Message.Builder) -> Unit): Int {
+            //First append everything before the location bracket
+            builder.append(source.substring(previousIndex..(locationOfBracket - 1)))
+            val closingBracket = source.indexOf('>', locationOfBracket + 1)
+            return if (closingBracket != -1) {
+                handler(source.substring((locationOfBracket + 1)..(closingBracket - 1)), builder)
+                closingBracket + 1
+            } else {
+                // Abort, just retroactively append the <
+                builder.append("<")
+                locationOfBracket + 1
+            }
+        }
+
+        private fun isBefore(index: Int, otherIndexes: List<Int>): Boolean {
+            return if (index != -1) {
+                otherIndexes.all { it == -1 || index < it }
+            } else {
+                false
+            }
         }
     }
 }

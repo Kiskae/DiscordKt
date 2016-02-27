@@ -39,8 +39,6 @@ interface Event {
         fun guildEmojiUpdate(e: Guilds.EmojiUpdate) = wireToGuild(e.guild_id, e)
         fun guildIntegrationsUpdate(e: Guilds.IntegrationsUpdate) = wireToGuild(e.guild_id, e)
 
-        //TODO: are messages relevant?
-
         fun userUpdate(e: Misc.UserUpdate) = unhandled(e)
         fun ready(e: Misc.Ready) = unhandled(e)
         fun typingStart(e: Misc.TypingStart) = wireToChannel(e.channel_id, e)

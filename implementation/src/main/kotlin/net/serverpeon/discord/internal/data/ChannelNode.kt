@@ -222,8 +222,19 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
         }
 
         override fun edit(): Channel.Public.Edit {
-            //FIXME
-            throw UnsupportedOperationException()
+            guild.selfAsMember.checkPermission(this, PermissionSet.Permission.MANAGE_CHANNEL)
+
+            return Transaction(topic, name)
+        }
+
+        inner class Transaction(override var topic: String, override var name: String) : Channel.Public.Edit {
+            override fun commit(): CompletableFuture<Channel.Public> {
+                throw UnsupportedOperationException() //FIXME
+            }
+
+            override fun abort() {
+                throw UnsupportedOperationException() //FIXME
+            }
         }
     }
 

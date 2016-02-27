@@ -81,7 +81,7 @@ class RoleNode(private val root: DiscordNode,
             if (aborted == TransactionTristate.AWAIT) {
                 aborted = TransactionTristate.ABORTED
             } else if (aborted == TransactionTristate.COMPLETED) {
-                throw IllegalArgumentException("äbort() after complete()")
+                throw IllegalArgumentException("abort() after complete()")
             }
         }
     }
