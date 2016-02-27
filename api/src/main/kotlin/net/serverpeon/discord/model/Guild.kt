@@ -93,6 +93,8 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
     @Throws(PermissionException::class)
     fun createRole(): CompletableFuture<Role.Edit>
 
+    //TODO: role reordering
+
     /**
      * Retrieves a list of emoji which is made available to a group of members within this server.
      */
@@ -110,6 +112,13 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
      */
     @Throws(PermissionException::class)
     fun unban(id: DiscordId<User>): CompletableFuture<Void>
+
+    /**
+     * Causes the client's user to leave this server.
+     *
+     * This will probably fail if the user is also the owner.
+     */
+    fun leave(): CompletableFuture<Void>
 
     interface Edit : Editable.Transaction<Edit, Guild> {
         /**

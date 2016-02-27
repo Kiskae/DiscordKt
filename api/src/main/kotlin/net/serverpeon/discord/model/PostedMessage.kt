@@ -30,6 +30,11 @@ interface PostedMessage : DiscordId.Identifiable<PostedMessage>, Editable<Posted
     val author: User
 
     /**
+     * The message was posted to this channel.
+     */
+    val channel: Channel.Text
+
+    /**
      * The raw string as sent by discord, contains all the unescaped data.
      */
     val rawContent: String
