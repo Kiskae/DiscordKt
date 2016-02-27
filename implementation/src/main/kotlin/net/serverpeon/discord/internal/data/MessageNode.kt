@@ -20,7 +20,7 @@ class MessageNode(val root: DiscordNode,
                   override val rawContent: String,
                   override val id: DiscordId<PostedMessage>,
                   override val author: User,
-                  val channel: ChannelNode) : PostedMessage {
+                  override val channel: ChannelNode) : PostedMessage {
     override val content: Message by lazy { parse(rawContent, root) }
 
     override fun edit(): PostedMessage.Edit {
@@ -57,7 +57,7 @@ class MessageNode(val root: DiscordNode,
             if (aborted == TransactionTristate.AWAIT) {
                 aborted = TransactionTristate.ABORTED
             } else if (aborted == TransactionTristate.COMPLETED) {
-                throw IllegalArgumentException("äbort() after complete()")
+                throw IllegalArgumentException("abort() after complete()")
             }
         }
 

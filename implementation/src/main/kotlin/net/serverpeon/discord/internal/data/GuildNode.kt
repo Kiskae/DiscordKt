@@ -224,6 +224,10 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
         }
     }
 
+    override fun leave(): CompletableFuture<Void> {
+        return root.api.Me.leaveGuild(WrappedId(id)).toFuture()
+    }
+
     override val selfAsMember: MemberNode
         get() = memberMap[root.self.id]!!
 
