@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.rest.adapters
+package net.serverpeon.discord.internal.adapters
 
 import com.google.common.collect.ImmutableMultimap
 import com.google.common.collect.Multimap
