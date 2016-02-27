@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture
 import kotlin.properties.Delegates
 
 class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, override var name: String,
-                val owner_id: DiscordId<User>) : Guild, Event.Visitor {
+                val ownerId: DiscordId<User>) : Guild, Event.Visitor {
     internal var channelMap = createEmptyMap<Channel, ChannelNode.Public>()
     internal var roleMap = createEmptyMap<Role, RoleNode>()
         set(e: Map<DiscordId<Role>, RoleNode>) {
@@ -140,7 +140,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, overri
     }
 
     fun resolvePermissions(member: Guild.Member): PermissionSet {
-        return if (member.id == owner_id) {
+        return if (member.id == ownerId) {
             return PermissionSet.ALL
         } else {
             member.roles.map {

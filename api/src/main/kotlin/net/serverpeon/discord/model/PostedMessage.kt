@@ -12,13 +12,13 @@ interface PostedMessage : DiscordId.Identifiable<PostedMessage>, Editable<Posted
 
     val textToSpeech: Boolean
 
+    val poster: User
+
     val rawContent: String
 
     val content: Message
 
     interface Edit : Editable.Transaction<Edit, PostedMessage> {
         var content: Message
-
-        var mentions: MutableList<User>
     }
 }

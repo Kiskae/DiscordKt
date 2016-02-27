@@ -65,6 +65,7 @@ class RoleNode(private val root: DiscordNode,
             } else if (aborted == TransactionTristate.COMPLETED) {
                 throw IllegalStateException("Don't call complete() twice")
             } else {
+                aborted = TransactionTristate.COMPLETED
                 return root.api.Guilds.editRole(WrappedId(guild.id), WrappedId(id), EditRoleRequest(
                         color = color,
                         hoist = grouped,

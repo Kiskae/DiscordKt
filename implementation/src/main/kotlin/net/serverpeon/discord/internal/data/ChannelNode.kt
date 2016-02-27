@@ -1,5 +1,6 @@
 package net.serverpeon.discord.internal.data
 
+import net.serverpeon.discord.interaction.PermissionException
 import net.serverpeon.discord.internal.rest.data.ChannelModel
 import net.serverpeon.discord.internal.rest.data.MessageModel
 import net.serverpeon.discord.internal.rest.data.WrappedId
@@ -150,7 +151,7 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
         }
 
         private fun resolveMemberPerms(member: Guild.Member, applyOwnOverride: Boolean): PermissionSet {
-            return if (member.id == guild.owner_id) {
+            return if (member.id == guild.ownerId) {
                 PermissionSet.ALL
             } else {
                 member.roles.map {
@@ -231,7 +232,9 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                                        id: DiscordId<Channel>,
                                        override val recipient: UserNode) : ChannelNode(root, id), Channel.Private {
         override fun checkPermission(perm: PermissionSet.Permission) {
-            //NOOP
+            if (perm == PermissionSet.Permission.MANAGE_MESSAGES) {
+                throw PermissionException(PermissionSet.Permission.MANAGE_MESSAGES)
+            }
         }
 
         override fun indicateTyping(): Completable {

@@ -112,6 +112,7 @@ class MemberNode(override val guild: GuildNode,
             } else if (aborted == TransactionTristate.COMPLETED) {
                 throw IllegalStateException("Don't call complete() twice")
             } else {
+                aborted = TransactionTristate.COMPLETED
                 return guild.root.api.Guilds.editMember(WrappedId(guild.id), WrappedId(id), EditMemberRequest(
                         roles = roles.map { it.id }
                 )).toFuture().thenApply {
