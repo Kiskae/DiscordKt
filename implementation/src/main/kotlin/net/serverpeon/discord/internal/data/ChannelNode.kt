@@ -1,9 +1,12 @@
 package net.serverpeon.discord.internal.data
 
 import net.serverpeon.discord.internal.rest.data.ChannelModel
+import net.serverpeon.discord.internal.rest.data.MessageModel
 import net.serverpeon.discord.internal.rest.data.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Channels.EditPermissionRequest
+import net.serverpeon.discord.internal.rest.retro.Channels.SendMessageRequest
 import net.serverpeon.discord.internal.rx
+import net.serverpeon.discord.internal.rxObservable
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.Channels
 import net.serverpeon.discord.internal.ws.data.inbound.Event
@@ -18,7 +21,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.regex.Pattern
 
 abstract class ChannelNode private constructor(val root: DiscordNode,
-                                               override val id: DiscordId<Channel>) : Channel, Event.Visitor {
+                                               override val id: DiscordId<Channel>) : Channel, Channel.Text, Event.Visitor {
     override fun typingStart(e: Misc.TypingStart) {
         // Ignored, not something we need to represent
     }
@@ -26,6 +29,56 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
     override fun toString(): String {
         return "Channel(id=$id)"
     }
+
+    override fun delete(): CompletableFuture<Void> {
+        return root.api.Channels.deleteChannel(WrappedId(id)).toFuture()
+    }
+
+    override fun messageHistory(limit: Int): Observable<PostedMessage> {
+        checkPermission(PermissionSet.Permission.READ_MESSAGE_HISTORY)
+        Observable.concat<List<MessageModel>>(Observable.create { sub -> //TODO: some sort of rate limiting mechanism
+            var currentLimit = limit
+            var lastMessage: MessageModel? = null
+            sub.setProducer {
+                if (currentLimit > 0) {
+                    //Produce the next call.
+                    val requestLimit = Math.min(currentLimit, 100)
+                    currentLimit -= requestLimit
+                    val obs = root.api.Channels.getMessages(WrappedId(id),
+                            limit = requestLimit,
+                            before = lastMessage?.let {
+                                WrappedId(it.id)
+                            }
+                    ).rxObservable().publish().autoConnect(2).apply {
+                        // Set lastMessage to last message of list
+                        subscribe { lastMessage = it.last() }
+                    }
+
+                    sub.onNext(obs)
+                } else {
+                    sub.onCompleted()
+                }
+            }
+        }).flatMapIterable {
+            it
+        }.subscribe { println(it) } //TODO: map to PostedMessage
+        return Observable.empty()
+    }
+
+    override fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage> {
+        checkPermission(PermissionSet.Permission.SEND_MESSAGES)
+        if (textToSpeech == true) {
+            checkPermission(PermissionSet.Permission.SEND_TTS_MESSAGES)
+        }
+        val mentions = message.mentions.map { it.id }.toList().toBlocking().first()
+        return root.api.Channels.sendMessage(WrappedId(id), SendMessageRequest(
+                message.encodedContent,
+                mentions = if (mentions.isNotEmpty()) mentions else null,
+                tts = textToSpeech
+        )).toFuture().thenApply { error("Not Yet Implemented") }
+    }
+
+    abstract fun checkPermission(perm: PermissionSet.Permission)
 
     class Public internal constructor(root: DiscordNode,
                                       id: DiscordId<Channel>,
@@ -35,6 +88,10 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                                       override var name: String,
                                       private var overrides: LinkedHashMap<DiscordId<*>, OverrideData>
     ) : ChannelNode(root, id), Channel.Public {
+        override fun checkPermission(perm: PermissionSet.Permission) {
+            guild.selfAsMember.checkPermission(this, perm)
+        }
+
         override val voiceStates: Observable<VoiceState> = Observable.empty() //TODO: implement voice state
 
         override val memberOverrides: Observable<Channel.ResolvedPermission<Guild.Member>>
@@ -162,10 +219,6 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
         override fun edit(): Channel.Public.Edit {
             throw UnsupportedOperationException()
         }
-
-        override fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage> {
-            throw UnsupportedOperationException()
-        }
     }
 
     data class OverrideData(val allow: PermissionSet, val deny: PermissionSet, val isMember: Boolean)
@@ -173,12 +226,23 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
     class Private internal constructor(root: DiscordNode,
                                        id: DiscordId<Channel>,
                                        override val recipient: UserNode) : ChannelNode(root, id), Channel.Private {
+        override fun checkPermission(perm: PermissionSet.Permission) {
+            //NOOP
+        }
+
         override fun indicateTyping(): Completable {
             return root.api.Channels.postActivity(WrappedId(id)).rx()
         }
 
         override fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage> {
-            throw UnsupportedOperationException()
+            val mentions = message.mentions.toList().toBlocking().first()
+            return root.api.Channels.sendMessage(WrappedId(id), SendMessageRequest(
+                    content = message.encodedContent,
+                    mentions = if (mentions.isEmpty()) null else mentions.map { it.id },
+                    tts = textToSpeech
+            )).toFuture().thenApply {
+                error("Message not yet translatable")
+            }
         }
 
         override val type: Channel.Type

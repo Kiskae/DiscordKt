@@ -6,10 +6,9 @@ import com.google.gson.GsonBuilder
 import com.google.gson.internal.bind.TypeAdapters
 import net.serverpeon.discord.DiscordClient
 import net.serverpeon.discord.DiscordClient.Builder.UserMetadata
-import net.serverpeon.discord.internal.rest.adapters.*
+import net.serverpeon.discord.internal.adapters.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
-import net.serverpeon.discord.internal.rx
 import net.serverpeon.discord.internal.ws.RetryHandler
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PermissionSet

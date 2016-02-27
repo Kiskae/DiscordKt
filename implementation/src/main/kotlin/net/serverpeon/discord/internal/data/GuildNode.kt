@@ -2,12 +2,17 @@ package net.serverpeon.discord.internal.data
 
 import com.google.common.collect.ImmutableList
 import net.serverpeon.discord.internal.rest.data.GuildModel
+import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.*
 import net.serverpeon.discord.model.*
 import rx.Observable
+import java.time.Duration
+import java.util.concurrent.CompletableFuture
 import kotlin.properties.Delegates
 
-class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guild, Event.Visitor {
+class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>, override var name: String,
+                val owner_id: DiscordId<User>) : Guild, Event.Visitor {
     internal var channelMap = createEmptyMap<Channel, ChannelNode.Public>()
     internal var roleMap = createEmptyMap<Role, RoleNode>()
         set(e: Map<DiscordId<Role>, RoleNode>) {
@@ -53,8 +58,13 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
         return members.filter { it.username == name }
     }
 
+    override val emoji: Observable<Emoji>
+        get() = observableList<Emoji, Emoji> { emojiMap.values }
+
     override fun guildUpdate(e: Guilds.General.Update) {
-        //TODO: what needs to be updated
+        e.guild.let {
+            name = it.name
+        }
     }
 
     override fun guildMemberAdd(e: Guilds.Members.Add) {
@@ -83,7 +93,7 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
     override fun guildRoleCreate(e: Guilds.Roles.Create) {
         check(e.role.id !in roleMap) { "Duplicate role create $e" }
 
-        val role = RoleNode.from(e.role, root)
+        val role = RoleNode.from(e.role, this, root)
         roleMap = roleMap.immutableAdd(role.id, role)
     }
 
@@ -120,6 +130,68 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
         channelMap.immutableRemove(e.channel.id)
     }
 
+    override fun unban(id: DiscordId<User>): CompletableFuture<Void> {
+        selfAsMember.checkPermission(this, PermissionSet.Permission.BAN_MEMBERS)
+
+        return root.api.Guilds.removeBan(
+                WrappedId(this.id),
+                WrappedId(id)
+        ).toFuture()
+    }
+
+    fun resolvePermissions(member: Guild.Member): PermissionSet {
+        return if (member.id == owner_id) {
+            return PermissionSet.ALL
+        } else {
+            member.roles.map {
+                it.permissions
+            }.reduce(PermissionSet.ZERO, { p1, p2 ->
+                p1.with(p2) // Fold all roles together
+            }).toBlocking().first()
+        }
+    }
+
+    override fun edit(): Guild.Edit {
+        selfAsMember.checkPermission(this, PermissionSet.Permission.MANAGE_SERVER)
+
+        return Transaction(name, "derp", null, Duration.ZERO)
+    }
+
+    class Transaction(override var name: String, region: String,
+                      afkChannel: Channel.Public?, afkTimeout: Duration) : Guild.Edit {
+        override var region: String = region
+            set(value) {
+                field = value //TODO: DIRTY MARKING
+            }
+        override var afkChannel: Channel.Public? = afkChannel
+            set(value) {
+                field = value
+            }
+        override var afkTimeout: Duration = afkTimeout
+            set(value) {
+                field = value
+            }
+
+        override fun commit(): CompletableFuture<Guild> {
+            throw UnsupportedOperationException()
+        }
+
+        override fun abort() {
+            throw UnsupportedOperationException()
+        }
+    }
+
+    override fun delete(): CompletableFuture<Void> {
+        selfAsMember.checkPermission(this, PermissionSet.Permission.MANAGE_SERVER)
+
+        return root.api.Guilds.deleteGuild(WrappedId(id)).toFuture().thenApply {
+            null
+        }
+    }
+
+    override val selfAsMember: MemberNode
+        get() = memberMap[root.self.id]!!
+
     override fun toString(): String {
         return "Guild(id=$id, channels=${channelMap.values}, roles=${roleMap.values}, membersNo=${memberMap.size})"
     }
@@ -150,13 +222,13 @@ class GuildNode(val root: DiscordNode, override val id: DiscordId<Guild>) : Guil
         }
 
         fun from(data: ReadyEventModel.ExtendedGuild, root: DiscordNode): GuildNode {
-            val guildNode = GuildNode(root, data.id)
+            val guildNode = GuildNode(root, data.id, data.name, data.owner_id)
 
             val presences = data.presences.map { it.user.id to it }.toMap()
             val voiceStates = data.voice_states.map { it.user_id to it }.toMap()
 
             guildNode.channelMap = data.channels.map { ChannelNode.from(it, guildNode, root) }.toImmutableIdMap()
-            guildNode.roleMap = data.roles.map { RoleNode.from(it, root) }.toImmutableIdMap()
+            guildNode.roleMap = data.roles.map { RoleNode.from(it, guildNode, root) }.toImmutableIdMap()
             guildNode.memberMap = data.members.map {
                 MemberNode.from(it, presences[it.user.id], voiceStates[it.user.id], guildNode, root)
             }.toImmutableIdMap()

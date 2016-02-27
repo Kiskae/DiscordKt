@@ -134,7 +134,7 @@ class DiscordNode(val api: ApiWrapper) : Event.Visitor {
 
             primaryNode.guildMap = guilds.toImmutableIdMap()
             primaryNode.channelMap = combineMaps(
-                    guilds.flatMap { it.channelMap.values }.toImmutableIdMap(), // Create a single addressable map of guilds
+                    guilds.flatMap { it.channelMap.values }.toImmutableIdMap(), // Create a single addressable map of channels
                     privateChannels.toImmutableIdMap()
             )
 
