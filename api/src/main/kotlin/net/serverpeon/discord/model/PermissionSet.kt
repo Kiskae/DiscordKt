@@ -159,6 +159,8 @@ data class PermissionSet internal constructor(private val permissions: EnumSet<P
         ATTACH_FILES,
         /**
          * Required to read back the message history of a channel.
+         *
+         * Required for [Channel.Text.messageHistory]
          */
         READ_MESSAGE_HISTORY,
         /**

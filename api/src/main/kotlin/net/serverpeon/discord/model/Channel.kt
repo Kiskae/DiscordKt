@@ -158,12 +158,18 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
          * @param message The message to send
          * @param textToSpeech Whether to mark the message for text-to-speech.
          * @return A future that returns the message with additional information about the post.
+         * @throws PermissionException if the permission [PermissionSet.Permission.SEND_MESSAGES] is missing.
          */
         @Throws(PermissionException::class)
         fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage>
 
         /**
+         * Retrieves the last [limit] messages sent to this channel.
          *
+         * @param limit The number of messages to retrieve.
+         * @return A lazy observable that retrieves the messages from the backend, if only a subset of the
+         *         returned value is used then it will attempt to limit additional requests.
+         * @throws PermissionException if the permission [PermissionSet.Permission.READ_MESSAGE_HISTORY] is missing.
          */
         @Throws(PermissionException::class)
         fun messageHistory(limit: Int): Observable<PostedMessage>

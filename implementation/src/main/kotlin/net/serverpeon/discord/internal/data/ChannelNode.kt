@@ -50,10 +50,10 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                             before = lastMessage?.let {
                                 WrappedId(it.id)
                             }
-                    ).rxObservable().publish().autoConnect(2).apply {
+                    ).rxObservable().publish().apply {
                         // Set lastMessage to last message of list
-                        subscribe { lastMessage = it.last() }
-                    }
+                        sub.add(subscribe { lastMessage = it.last() })
+                    }.refCount()
 
                     sub.onNext(obs)
                 } else {
