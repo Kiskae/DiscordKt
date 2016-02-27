@@ -150,22 +150,26 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
         }
 
         private fun resolveMemberPerms(member: Guild.Member, applyOwnOverride: Boolean): PermissionSet {
-            return member.roles.map {
-                permissionsFor(it)
-            }.reduce(PermissionSet.ZERO, { p1, p2 ->
-                p1.with(p2) // Fold all roles together
-            }).let {
-                if (applyOwnOverride) {
-                    it.map { rolePerms ->
-                        val overrides = overrides[member.id]
-                        overrides?.let {
-                            rolePerms.without(it.deny).with(it.allow)
-                        } ?: rolePerms
+            return if (member.id == guild.owner_id) {
+                PermissionSet.ALL
+            } else {
+                member.roles.map {
+                    permissionsFor(it)
+                }.reduce(PermissionSet.ZERO, { p1, p2 ->
+                    p1.with(p2) // Fold all roles together
+                }).let {
+                    if (applyOwnOverride) {
+                        it.map { rolePerms ->
+                            val overrides = overrides[member.id]
+                            overrides?.let {
+                                rolePerms.without(it.deny).with(it.allow)
+                            } ?: rolePerms
+                        }
+                    } else {
+                        it
                     }
-                } else {
-                    it
-                }
-            }.toBlocking().first() //Everything SHOULD be available, so this won't cause problems (famous last words)
+                }.toBlocking().first() //Everything SHOULD be available, so this won't cause problems (famous last words)
+            }
         }
 
         override fun setOverride(allow: PermissionSet, deny: PermissionSet, member: Guild.Member): CompletableFuture<PermissionSet> {
