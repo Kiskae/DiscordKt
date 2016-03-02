@@ -4,14 +4,15 @@ import com.google.gson.Gson
 import net.serverpeon.discord.internal.createLogger
 import net.serverpeon.discord.internal.kDebug
 import net.serverpeon.discord.internal.kTrace
+import net.serverpeon.discord.internal.toObservable
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.outbound.KeepaliveMsg
-import net.serverpeon.discord.internal.toObservable
 import org.glassfish.tyrus.client.ClientManager
 import rx.Observable
 import rx.Subscriber
 import rx.schedulers.Schedulers
+import rx.subjects.BehaviorSubject
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
@@ -19,9 +20,9 @@ object DiscordWebsocket {
     private val client: ClientManager by lazy { ClientManager.createClient() }
     private val logger = createLogger()
 
-    fun create(connectMsg: ConnectMsg, socketUrl: URI, gson: Gson): Observable<Event> {
-        return Observable.create<Event> { sub ->
-            val connectableRx = openWebsocketStream(socketUrl, gson).publish()
+    fun create(connectMsg: ConnectMsg, socketUrl: URI, gson: Gson): Observable<EventWrapper> {
+        return Observable.create<EventWrapper> { sub ->
+            val connectableRx = openWebsocketStream(BehaviorSubject.create(socketUrl), gson).publish()
 
             // StartEvent is the first event
             connectableRx.first().flatMap { startEvent ->
@@ -46,7 +47,7 @@ object DiscordWebsocket {
         }
     }
 
-    private fun initKeepAlive(e: Event, gson: Gson): Observable<Void> {
+    private fun initKeepAlive(e: EventWrapper, gson: Gson): Observable<Void> {
         val timeout = (e.event as Misc.Ready).data.heartbeat_interval
         logger.kTrace { "Sending keep alive every ${timeout}ms" }
         return Observable.interval(timeout, TimeUnit.MILLISECONDS).flatMap {
@@ -58,11 +59,14 @@ object DiscordWebsocket {
         sub.add(this.doOnError { sub.onError(it) }.subscribe())
     }
 
-    private fun openWebsocketStream(socketUrl: URI, gson: Gson): Observable<Event> {
+    private fun openWebsocketStream(urlObservable: BehaviorSubject<URI>, gson: Gson): Observable<EventWrapper> {
         return Observable.create { sub ->
             val endpoint = DiscordEndpoint(DiscordHandlers.create(gson), sub)
-            val future = client.asyncConnectToServer(endpoint, socketUrl)
-            Observable.from(future).subscribeOn(Schedulers.newThread()).connectTo(sub)
+            urlObservable.map { socketUrl ->
+                client.asyncConnectToServer(endpoint, socketUrl)
+            }.flatMap { openFuture ->
+                Observable.from(openFuture).subscribeOn(Schedulers.newThread())
+            }.connectTo(sub)
         }
     }
 }
