@@ -1,7 +1,5 @@
 package net.serverpeon.discord.internal.data.model
 
-import net.serverpeon.discord.interaction.Editable
-import net.serverpeon.discord.internal.data.TransactionTristate
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Channels
 import net.serverpeon.discord.internal.toFuture
@@ -12,6 +10,7 @@ import net.serverpeon.discord.model.PostedMessage
 import net.serverpeon.discord.model.User
 import java.time.ZonedDateTime
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MessageNode(val root: DiscordNode,
                   override val postedAt: ZonedDateTime,
@@ -37,30 +36,18 @@ class MessageNode(val root: DiscordNode,
     }
 
     inner class Transaction(override var content: Message) : PostedMessage.Edit {
-        private var aborted: TransactionTristate = TransactionTristate.AWAIT
+        private var completed = AtomicBoolean(false)
 
         override fun commit(): CompletableFuture<PostedMessage> {
-            if (aborted == TransactionTristate.ABORTED) {
-                throw Editable.AbortedTransactionException()
-            } else if (aborted == TransactionTristate.COMPLETED) {
+            if (completed.getAndSet(true)) {
                 throw IllegalStateException("Don't call complete() twice")
             } else {
-                aborted = TransactionTristate.COMPLETED
                 return root.api.Channels.editMessage(WrappedId(channel.id), WrappedId(id), Channels.EditMessageRequest(
                         content = content.encodedContent,
                         mentions = content.mentions.map { it.id }.toList().toBlocking().first()
                 )).toFuture().thenApply { Builder.message(it, root) }
             }
         }
-
-        override fun abort() {
-            if (aborted == TransactionTristate.AWAIT) {
-                aborted = TransactionTristate.ABORTED
-            } else if (aborted == TransactionTristate.COMPLETED) {
-                throw IllegalArgumentException("abort() after complete()")
-            }
-        }
-
     }
 
     companion object {

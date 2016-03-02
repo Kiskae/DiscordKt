@@ -2,7 +2,6 @@ package net.serverpeon.discord.internal.data.model
 
 import net.serverpeon.discord.interaction.Editable
 import net.serverpeon.discord.internal.data.EventInput
-import net.serverpeon.discord.internal.data.TransactionTristate
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Guilds.EditRoleRequest
 import net.serverpeon.discord.internal.toFuture
@@ -12,6 +11,7 @@ import net.serverpeon.discord.model.PermissionSet
 import net.serverpeon.discord.model.Role
 import java.awt.Color
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class RoleNode(private val root: DiscordNode,
@@ -60,18 +60,15 @@ class RoleNode(private val root: DiscordNode,
                                     override var grouped: Boolean,
                                     override var name: String,
                                     override var permissions: PermissionSet) : Role.Edit {
-        private var aborted: TransactionTristate = TransactionTristate.AWAIT
+        private var completed = AtomicBoolean(false)
         private val changeIdAtInit = changeId.get()
 
         override fun commit(): CompletableFuture<Role> {
             if (changeId.compareAndSet(changeIdAtInit, changeIdAtInit + 1)) {
                 throw Editable.ResourceChangedException(this@RoleNode)
-            } else if (aborted == TransactionTristate.ABORTED) {
-                throw Editable.AbortedTransactionException()
-            } else if (aborted == TransactionTristate.COMPLETED) {
+            } else if (completed.getAndSet(true)) {
                 throw IllegalStateException("Don't call complete() twice")
             } else {
-                aborted = TransactionTristate.COMPLETED
                 return root.api.Guilds.editRole(WrappedId(guild.id), WrappedId(id), EditRoleRequest(
                         color = color,
                         hoist = grouped,
@@ -80,14 +77,6 @@ class RoleNode(private val root: DiscordNode,
                 )).toFuture().thenApply {
                     Builder.role(it, guild)
                 }
-            }
-        }
-
-        override fun abort() {
-            if (aborted == TransactionTristate.AWAIT) {
-                aborted = TransactionTristate.ABORTED
-            } else if (aborted == TransactionTristate.COMPLETED) {
-                throw IllegalArgumentException("abort() after complete()")
             }
         }
     }

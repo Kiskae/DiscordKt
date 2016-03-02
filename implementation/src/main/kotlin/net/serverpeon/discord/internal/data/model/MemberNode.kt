@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList
 import net.serverpeon.discord.interaction.Editable
 import net.serverpeon.discord.interaction.PermissionException
 import net.serverpeon.discord.internal.data.EventInput
-import net.serverpeon.discord.internal.data.TransactionTristate
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Guilds.EditMemberRequest
 import net.serverpeon.discord.internal.toFuture
@@ -15,6 +14,7 @@ import net.serverpeon.discord.model.*
 import rx.Observable
 import java.time.ZonedDateTime
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class MemberNode(override val guild: GuildNode,
@@ -128,31 +128,20 @@ class MemberNode(override val guild: GuildNode,
     }
 
     inner class Transaction(override var roles: MutableList<Role>) : Guild.Member.Edit {
-        private var aborted: TransactionTristate = TransactionTristate.AWAIT
+        private var completed = AtomicBoolean(false)
         private val changeIdAtInit = changeId.get()
 
         override fun commit(): CompletableFuture<Guild.Member> {
             if (changeId.compareAndSet(changeIdAtInit, changeIdAtInit + 1)) {
                 throw Editable.ResourceChangedException(this@MemberNode)
-            } else if (aborted == TransactionTristate.ABORTED) {
-                throw Editable.AbortedTransactionException()
-            } else if (aborted == TransactionTristate.COMPLETED) {
+            } else if (completed.getAndSet(true)) {
                 throw IllegalStateException("Don't call complete() twice")
             } else {
-                aborted = TransactionTristate.COMPLETED
                 return guild.root.api.Guilds.editMember(WrappedId(guild.id), WrappedId(id), EditMemberRequest(
                         roles = roles.map { it.id }
                 )).toFuture().thenApply {
                     this@MemberNode
                 } //Can't do anything about this :|
-            }
-        }
-
-        override fun abort() {
-            if (aborted == TransactionTristate.AWAIT) {
-                aborted = TransactionTristate.ABORTED
-            } else if (aborted == TransactionTristate.COMPLETED) {
-                throw IllegalArgumentException("äbort() after complete()")
             }
         }
     }

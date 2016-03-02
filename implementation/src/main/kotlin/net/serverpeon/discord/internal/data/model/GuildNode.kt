@@ -16,6 +16,7 @@ import rx.Observable
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.properties.Delegates
 
@@ -235,7 +236,7 @@ class GuildNode internal constructor(val root: DiscordNode,
 
     inner class Transaction(override var name: String, region: Region,
                             afkChannel: Channel.Public?, afkTimeout: Duration) : Guild.Edit {
-        private var aborted: TransactionTristate = TransactionTristate.AWAIT
+        private var completed = AtomicBoolean(false)
         private val changeIdAtInit = changeId.get()
         private val changed = EnumSet.noneOf(GuildEditFlags::class.java)
 
@@ -258,26 +259,15 @@ class GuildNode internal constructor(val root: DiscordNode,
         override fun commit(): CompletableFuture<Guild> {
             if (changeId.compareAndSet(changeIdAtInit, changeIdAtInit + 1)) {
                 throw Editable.ResourceChangedException(this@GuildNode)
-            } else if (aborted == TransactionTristate.ABORTED) {
-                throw Editable.AbortedTransactionException()
-            } else if (aborted == TransactionTristate.COMPLETED) {
+            } else if (completed.getAndSet(true)) {
                 throw IllegalStateException("Don't call complete() twice")
             } else {
-                aborted = TransactionTristate.COMPLETED
                 return root.api.Guilds.editGuild(WrappedId(id), EditGuildRequest(
                         name = name,
                         region = if (GuildEditFlags.REGION in changed) region else null,
                         afk_channel_id = if (GuildEditFlags.AFK_CHANNEL in changed) afkChannel?.let { it.id } else null,
                         afk_timeout = if (GuildEditFlags.AFK_TIMEOUT in changed) afkTimeout else null
                 )).toFuture().thenApply { Builder.guild(it, root) }
-            }
-        }
-
-        override fun abort() {
-            if (aborted == TransactionTristate.AWAIT) {
-                aborted = TransactionTristate.ABORTED
-            } else if (aborted == TransactionTristate.COMPLETED) {
-                throw IllegalArgumentException("abort() after complete()")
             }
         }
     }

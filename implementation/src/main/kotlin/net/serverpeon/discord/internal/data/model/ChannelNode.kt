@@ -1,12 +1,12 @@
 package net.serverpeon.discord.internal.data.model
 
+import net.serverpeon.discord.interaction.Editable
 import net.serverpeon.discord.interaction.PermissionException
 import net.serverpeon.discord.internal.data.EventInput
 import net.serverpeon.discord.internal.jsonmodels.ChannelModel
 import net.serverpeon.discord.internal.jsonmodels.MessageModel
 import net.serverpeon.discord.internal.rest.WrappedId
-import net.serverpeon.discord.internal.rest.retro.Channels.EditPermissionRequest
-import net.serverpeon.discord.internal.rest.retro.Channels.SendMessageRequest
+import net.serverpeon.discord.internal.rest.retro.Channels.*
 import net.serverpeon.discord.internal.rx
 import net.serverpeon.discord.internal.rxObservable
 import net.serverpeon.discord.internal.toFuture
@@ -18,6 +18,8 @@ import rx.Completable
 import rx.Observable
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 
 abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: DiscordNode,
@@ -82,8 +84,11 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
                                       override var topic: String,
                                       override val type: Channel.Type,
                                       override var name: String,
-                                      internal var overrides: LinkedHashMap<DiscordId<*>, OverrideData>
+                                      internal var overrides: LinkedHashMap<DiscordId<*>, OverrideData>,
+                                      internal var position: Int
     ) : ChannelNode<Public>(root, id), Channel.Public {
+        private val changeId = AtomicInteger(0)
+
         override fun handler(): EventInput.Handler<Public> {
             return PublicChannelUpdater
         }
@@ -214,12 +219,23 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
         }
 
         inner class Transaction(override var topic: String, override var name: String) : Channel.Public.Edit {
-            override fun commit(): CompletableFuture<Channel.Public> {
-                throw UnsupportedOperationException() //FIXME
-            }
+            private var completed = AtomicBoolean(false)
+            private val changeIdAtInit = changeId.get()
 
-            override fun abort() {
-                throw UnsupportedOperationException() //FIXME
+            override fun commit(): CompletableFuture<Channel.Public> {
+                if (changeId.compareAndSet(changeIdAtInit, changeIdAtInit + 1)) {
+                    throw Editable.ResourceChangedException(this@Public)
+                } else if (completed.getAndSet(true)) {
+                    throw IllegalStateException("Don't call complete() twice")
+                } else {
+                    return root.api.Channels.editChannel(WrappedId(id), EditChannelRequest(
+                            name = name,
+                            position = position,
+                            topic = topic
+                    )).toFuture().thenApply {
+                        Builder.channel(it, guild)
+                    }
+                }
             }
         }
     }
@@ -241,6 +257,7 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
                 target.name = it.name
                 target.topic = it.topic ?: ""
                 target.overrides = translateOverrides(it.permission_overwrites)
+                target.position = it.position
             }
         }
     }

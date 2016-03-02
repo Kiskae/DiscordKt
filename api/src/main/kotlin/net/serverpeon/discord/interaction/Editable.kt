@@ -21,22 +21,11 @@ interface Editable<T : Editable<T, G>, G : Editable.Transaction<G, T>> {
          *
          * If the underlying resource has changed between [edit] and [commit] the observable will fail with an
          * [ResourceChangedException].
-         * If the transaction has been aborted with [abort] then the observable will fail with an
-         * [AbortedTransactionException].
          */
         fun commit(): CompletableFuture<T>
-
-        /**
-         * Calling this method ensures all future calls to [commit] fail with an [AbortedTransactionException].
-         *
-         * If the transaction has already been committed when this is called then it will throw an [IllegalStateException].
-         */
-        fun abort()
     }
 
     class ResourceChangedException(val resource: Editable<*, *>) : RuntimeException(
             "The resource $resource has changed between the start of the transaction and the attempt to commit."
     )
-
-    class AbortedTransactionException : RuntimeException("Attempt to call commit() after abort()")
 }

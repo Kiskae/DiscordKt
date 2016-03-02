@@ -74,7 +74,8 @@ internal object Builder {
                 channel.topic ?: "",
                 if (channel.type == ChannelModel.Type.TEXT) Channel.Type.TEXT else Channel.Type.VOICE,
                 channel.name,
-                ChannelNode.translateOverrides(channel.permission_overwrites)
+                ChannelNode.translateOverrides(channel.permission_overwrites),
+                channel.position
         )
     }
 
