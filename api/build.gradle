@@ -8,5 +8,17 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '19.0'
 }
 
+publishing {
+    publications {
+        api(MavenPublication) {
+            groupId rootProject.group
+            artifactId rootProject.name.toLowerCase() + "-api"
+            version rootProject.version
+
+            from components.java
+        }
+    }
+}
+
 dokka {
 }

@@ -1,7 +1,6 @@
 apply plugin: 'kotlin'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile project(":api")
 
     // Retrofit
@@ -24,4 +23,16 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.13'
     compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.4'
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.4'
+}
+
+publishing {
+    publications {
+        implementation(MavenPublication) {
+            groupId rootProject.group
+            artifactId rootProject.name.toLowerCase() + "-impl"
+            version rootProject.version
+
+            from components.java
+        }
+    }
 }

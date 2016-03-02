@@ -12,6 +12,10 @@ buildscript {
     }
 }
 
+plugins {
+    id "com.jfrog.bintray" version "1.6"
+}
+
 group 'net.serverpeon'
 version '1.0-SNAPSHOT'
 
@@ -20,4 +24,34 @@ allprojects {
         mavenCentral()
         jcenter()
     }
+
+    apply plugin: 'maven-publish'
+}
+
+publishing {
+    publications {
+        // Import sub-project publications
+        subprojects.forEach { project ->
+            //noinspection GrUnresolvedAccess,GroovyAssignabilityCheck
+            addAll(project.publishing.publications)
+        }
+    }
+}
+
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+    publications = ['api', 'implementation']
+    pkg {
+        repo = 'maven'
+        name = 'discordkt'
+        userOrg = user
+        licenses = ["MIT"]
+        vcsUrl = "https://github.com/Kiskae/DiscordKt.git"
+        githubRepo = "Kiskae/DiscordKt"
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.11'
 }

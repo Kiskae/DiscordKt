@@ -13,6 +13,8 @@ gradle-app.setting
 
 # Cache of project
 .gradletasknamecache
+# Secrets
+gradle.properties
 
 
 ### Intellij ###
