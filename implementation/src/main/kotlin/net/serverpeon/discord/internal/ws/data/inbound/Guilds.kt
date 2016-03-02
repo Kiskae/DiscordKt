@@ -4,11 +4,7 @@ import net.serverpeon.discord.internal.data.EventInput
 import net.serverpeon.discord.internal.data.model.GuildNode
 import net.serverpeon.discord.internal.data.model.MemberNode
 import net.serverpeon.discord.internal.data.model.RoleNode
-import net.serverpeon.discord.internal.jsonmodels.MemberModel
-import net.serverpeon.discord.internal.jsonmodels.ReadyEventModel
-import net.serverpeon.discord.internal.jsonmodels.GuildModel
-import net.serverpeon.discord.internal.jsonmodels.RoleModel
-import net.serverpeon.discord.internal.jsonmodels.UserModel
+import net.serverpeon.discord.internal.jsonmodels.*
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.Role

@@ -1,10 +1,6 @@
 package net.serverpeon.discord.internal.jsonmodels
 
 import com.google.gson.JsonElement
-import net.serverpeon.discord.internal.jsonmodels.ChannelModel
-import net.serverpeon.discord.internal.jsonmodels.GuildModel
-import net.serverpeon.discord.internal.jsonmodels.RoleModel
-import net.serverpeon.discord.internal.jsonmodels.SelfModel
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.model.*
 import java.time.Duration

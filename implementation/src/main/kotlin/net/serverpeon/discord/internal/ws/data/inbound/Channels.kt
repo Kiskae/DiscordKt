@@ -2,8 +2,8 @@ package net.serverpeon.discord.internal.ws.data.inbound
 
 import net.serverpeon.discord.internal.data.EventInput
 import net.serverpeon.discord.internal.data.model.ChannelNode
-import net.serverpeon.discord.internal.jsonmodels.PrivateChannelModel
 import net.serverpeon.discord.internal.jsonmodels.ChannelModel
+import net.serverpeon.discord.internal.jsonmodels.PrivateChannelModel
 
 interface Channels : Event {
     interface Create : Channels {

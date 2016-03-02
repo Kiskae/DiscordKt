@@ -1,6 +1,5 @@
 package net.serverpeon.discord.internal.jsonmodels
 
-import net.serverpeon.discord.internal.jsonmodels.UserModel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.Role

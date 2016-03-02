@@ -1,7 +1,7 @@
 package net.serverpeon.discord.internal.rest.retro
 
-import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.jsonmodels.PrivateChannelModel
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.User
