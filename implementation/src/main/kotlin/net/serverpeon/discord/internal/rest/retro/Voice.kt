@@ -1,6 +1,6 @@
 package net.serverpeon.discord.internal.rest.retro
 
-import net.serverpeon.discord.internal.rest.data.RegionModel
+import net.serverpeon.discord.internal.jsonmodels.RegionModel
 import retrofit2.Call
 import retrofit2.http.GET
 

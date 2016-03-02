@@ -6,7 +6,7 @@ import net.serverpeon.discord.internal.send
 import java.util.concurrent.CompletableFuture
 import javax.websocket.Session
 
-data class Event(private val session: Session, val event: Any) {
+data class EventWrapper(private val session: Session, val event: Any) {
     companion object {
         private val logger = createLogger()
     }

@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.rest.data
+package net.serverpeon.discord.internal.jsonmodels
 
 import com.google.gson.annotations.SerializedName
 import net.serverpeon.discord.model.*

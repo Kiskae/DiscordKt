@@ -4,7 +4,7 @@ import com.google.common.io.Resources
 import com.google.gson.GsonBuilder
 import com.google.gson.internal.bind.TypeAdapters
 import net.serverpeon.discord.internal.adapters.*
-import net.serverpeon.discord.internal.ws.data.inbound.ReadyEventModel
+import net.serverpeon.discord.internal.jsonmodels.ReadyEventModel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PermissionSet
 import org.junit.Test

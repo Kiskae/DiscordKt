@@ -1,6 +1,6 @@
-package net.serverpeon.discord.internal.ws.data.inbound
+package net.serverpeon.discord.internal.jsonmodels
 
-import net.serverpeon.discord.internal.rest.data.UserModel
+import net.serverpeon.discord.internal.jsonmodels.UserModel
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PostedMessage

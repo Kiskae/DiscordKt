@@ -1,6 +1,10 @@
 package net.serverpeon.discord.internal.rest.retro
 
-import net.serverpeon.discord.internal.rest.data.*
+import net.serverpeon.discord.internal.jsonmodels.ChannelModel
+import net.serverpeon.discord.internal.jsonmodels.GuildModel
+import net.serverpeon.discord.internal.jsonmodels.RoleModel
+import net.serverpeon.discord.internal.jsonmodels.UserModel
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.model.*
 import retrofit2.Call
 import retrofit2.http.*

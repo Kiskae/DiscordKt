@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.rest.data
+package net.serverpeon.discord.internal.jsonmodels
 
 import net.serverpeon.discord.model.*
 import java.time.Duration

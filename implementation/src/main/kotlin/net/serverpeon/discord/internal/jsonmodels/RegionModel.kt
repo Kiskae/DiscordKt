@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.rest.data
+package net.serverpeon.discord.internal.jsonmodels
 
 data class RegionModel(val sample_hostname: String,
                        val sample_port: Int,

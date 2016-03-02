@@ -1,22 +1,28 @@
 package net.serverpeon.discord.internal.ws.data.inbound
 
 import com.google.gson.annotations.SerializedName
-import net.serverpeon.discord.internal.rest.data.SelfModel
+import net.serverpeon.discord.internal.data.EventInput
+import net.serverpeon.discord.internal.jsonmodels.ReadyEventModel
+import net.serverpeon.discord.internal.jsonmodels.SelfModel
+import net.serverpeon.discord.internal.jsonmodels.VoiceStateModel
 import net.serverpeon.discord.model.*
 
 interface Misc : Event {
     data class UserUpdate(val self: SelfModel) : Misc {
-        override fun accept(visitor: Event.Visitor) = visitor.userUpdate(this)
+        override fun <T : EventInput<T>> accept(visitor: T, handler: EventInput.Handler<T>)
+                = handler.userUpdate(visitor, this)
     }
 
     data class Ready(val data: ReadyEventModel) : Misc {
-        override fun accept(visitor: Event.Visitor) = visitor.ready(this)
+        override fun <T : EventInput<T>> accept(visitor: T, handler: EventInput.Handler<T>)
+                = handler.ready(visitor, this)
     }
 
     data class TypingStart(val user_id: DiscordId<User>,
                            val timestamp: Long,
                            val channel_id: DiscordId<Channel>) : Misc {
-        override fun accept(visitor: Event.Visitor) = visitor.typingStart(this)
+        override fun <T : EventInput<T>> accept(visitor: T, handler: EventInput.Handler<T>)
+                = handler.typingStart(visitor, this)
     }
 
     data class PresenceUpdate(val user: UserRef,
@@ -25,7 +31,8 @@ interface Misc : Event {
                               val guild_id: DiscordId<Guild>,
                               val game: Playing?) : Misc {
 
-        override fun accept(visitor: Event.Visitor) = visitor.presenceUpdate(this)
+        override fun <T : EventInput<T>> accept(visitor: T, handler: EventInput.Handler<T>)
+                = handler.presenceUpdate(visitor, this)
 
         /**
          * Includes username, discriminator and avatar if one of those changes (or it seems at random other places)
@@ -49,6 +56,7 @@ interface Misc : Event {
     }
 
     data class VoiceStateUpdate(val update: VoiceStateModel) : Misc {
-        override fun accept(visitor: Event.Visitor) = visitor.voiceStateUpdate(this)
+        override fun <T : EventInput<T>> accept(visitor: T, handler: EventInput.Handler<T>)
+                = handler.voiceStateUpdate(visitor, this)
     }
 }

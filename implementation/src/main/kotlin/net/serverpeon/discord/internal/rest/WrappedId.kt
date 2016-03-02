@@ -1,4 +1,4 @@
-package net.serverpeon.discord.internal.rest.data
+package net.serverpeon.discord.internal.rest
 
 import net.serverpeon.discord.model.DiscordId
 

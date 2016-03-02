@@ -1,8 +1,8 @@
 package net.serverpeon.discord.internal.rest.retro
 
-import net.serverpeon.discord.internal.rest.data.ChannelModel
-import net.serverpeon.discord.internal.rest.data.MessageModel
-import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.jsonmodels.ChannelModel
+import net.serverpeon.discord.internal.jsonmodels.MessageModel
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.model.*
 import retrofit2.Call
 import retrofit2.http.*

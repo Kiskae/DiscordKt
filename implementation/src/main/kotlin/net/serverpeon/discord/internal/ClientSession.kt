@@ -4,14 +4,13 @@ import com.google.common.eventbus.EventBus
 import com.google.gson.Gson
 import com.jakewharton.rxrelay.BehaviorRelay
 import net.serverpeon.discord.DiscordClient
-import net.serverpeon.discord.internal.data.DiscordNode
-import net.serverpeon.discord.internal.data.GuildNode
+import net.serverpeon.discord.internal.data.model.DiscordNode
+import net.serverpeon.discord.internal.data.model.RegionNode
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Auth
-import net.serverpeon.discord.internal.rest.retro.Guilds
 import net.serverpeon.discord.internal.ws.RetryHandler
 import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
-import net.serverpeon.discord.internal.ws.client.Event
+import net.serverpeon.discord.internal.ws.client.EventWrapper
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.model.*
@@ -46,7 +45,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
             onError(it)
         })
     }.first()
-    private val eventStream: ConnectableObservable<Event> = apiWrapper.flatMap {
+    private val eventStream: ConnectableObservable<EventWrapper> = apiWrapper.flatMap {
         it.Gateway.wsEndpoint().rxObservable()
     }.flatMap { endPoint ->
         apiWrapper.flatMap { apiWrapper ->
@@ -100,7 +99,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                 // If we receive a Ready event, generate a new model
                 apiWrapper.map { api ->
                     logger.kDebug { "Rebuilding Discord model" }
-                    val newModel = DiscordNode.from(event.data, api)
+                    val newModel = DiscordNode.build(event.data, api)
                     this.call(newModel) // Update the model
                     newModel
                 }
@@ -109,7 +108,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                 this
             }.map { model ->
                 // Pass the event to the model
-                model.visit(event as net.serverpeon.discord.internal.ws.data.inbound.Event)
+                model.handle(event as net.serverpeon.discord.internal.ws.data.inbound.Event)
             }
         }.subscribe()
     }.first()
@@ -153,15 +152,8 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun createGuild(name: String, region: Region): CompletableFuture<Guild> {
-        return ensureSafeModelAccess().flatMap { model ->
-            apiWrapper.flatMap {
-                it.Guilds.createGuild(Guilds.CreateGuildRequest(
-                        name = name,
-                        region = region
-                )).rxObservable()
-            }.map {
-                GuildNode.from(it, model) as Guild
-            }
+        return ensureSafeModelAccess().flatMap {
+            it.createGuild(name, region)
         }.toFuture()
     }
 
@@ -197,7 +189,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         }.flatMapIterable {
             it
         }.map {
-            GuildNode.from(it)
+            RegionNode.create(it)
         }
     }
 

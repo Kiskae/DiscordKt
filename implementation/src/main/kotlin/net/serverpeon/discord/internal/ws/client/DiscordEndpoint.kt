@@ -10,7 +10,7 @@ import java.io.Reader
 import java.util.zip.InflaterInputStream
 import javax.websocket.*
 
-internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber: Subscriber<in Event>) : Endpoint() {
+internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber: Subscriber<in EventWrapper>) : Endpoint() {
     private val logger = createLogger()
 
     override fun onOpen(session: Session, config: EndpointConfig) {
@@ -23,7 +23,7 @@ internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber
         })
 
         // Indicate we're about to start sending messages
-        subscriber.onNext(Event(session, StartEvent))
+        subscriber.onNext(EventWrapper(session, StartEvent))
 
         // Add message forwarder
         session.addMessageHandler(TextHandler(session))
@@ -41,7 +41,7 @@ internal class DiscordEndpoint(val translator: MessageTranslator, val subscriber
     private fun handleEvent(reader: Reader, session: Session) {
         if (!subscriber.isUnsubscribed) {
             translator.translate(reader)?.let {
-                subscriber.onNext(Event(session, it))
+                subscriber.onNext(EventWrapper(session, it))
             }
         }
     }
