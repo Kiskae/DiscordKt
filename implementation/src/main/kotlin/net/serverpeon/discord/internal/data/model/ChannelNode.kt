@@ -1,18 +1,17 @@
-package net.serverpeon.discord.internal.data
+package net.serverpeon.discord.internal.data.model
 
 import net.serverpeon.discord.interaction.PermissionException
-import net.serverpeon.discord.internal.rest.data.ChannelModel
-import net.serverpeon.discord.internal.rest.data.MessageModel
-import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.data.EventInput
+import net.serverpeon.discord.internal.jsonmodels.ChannelModel
+import net.serverpeon.discord.internal.jsonmodels.MessageModel
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Channels.EditPermissionRequest
 import net.serverpeon.discord.internal.rest.retro.Channels.SendMessageRequest
 import net.serverpeon.discord.internal.rx
 import net.serverpeon.discord.internal.rxObservable
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.Channels
-import net.serverpeon.discord.internal.ws.data.inbound.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
-import net.serverpeon.discord.internal.ws.data.inbound.PrivateChannelModel
 import net.serverpeon.discord.message.Message
 import net.serverpeon.discord.model.*
 import rx.Completable
@@ -21,16 +20,9 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.regex.Pattern
 
-abstract class ChannelNode private constructor(val root: DiscordNode,
-                                               override val id: DiscordId<Channel>) : Channel, Channel.Text, Event.Visitor {
-    override fun typingStart(e: Misc.TypingStart) {
-        // Ignored, not something we need to represent
-    }
-
-    override fun toString(): String {
-        return "Channel(id=$id)"
-    }
-
+abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: DiscordNode,
+                                                                   override val id: DiscordId<Channel>
+) : Channel, Channel.Text, EventInput<T> {
     override fun delete(): CompletableFuture<Void> {
         return root.api.Channels.deleteChannel(WrappedId(id)).toFuture()
     }
@@ -63,7 +55,7 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
             }
         }).flatMapIterable {
             it
-        }.map { MessageNode.from(it, root) }
+        }.map { Builder.message(it, root) }
     }
 
     override fun sendMessage(message: Message, textToSpeech: Boolean?): CompletableFuture<PostedMessage> {
@@ -76,19 +68,26 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                 message.encodedContent,
                 mentions = if (mentions.isNotEmpty()) mentions else null,
                 tts = textToSpeech
-        )).toFuture().thenApply { MessageNode.from(it, root) }
+        )).toFuture().thenApply { Builder.message(it, root) }
     }
 
     abstract fun checkPermission(perm: PermissionSet.Permission)
 
+    /**
+     * Public channel objects start here
+     */
     class Public internal constructor(root: DiscordNode,
                                       id: DiscordId<Channel>,
                                       override val guild: GuildNode,
                                       override var topic: String,
                                       override val type: Channel.Type,
                                       override var name: String,
-                                      private var overrides: LinkedHashMap<DiscordId<*>, OverrideData>
-    ) : ChannelNode(root, id), Channel.Public {
+                                      internal var overrides: LinkedHashMap<DiscordId<*>, OverrideData>
+    ) : ChannelNode<Public>(root, id), Channel.Public {
+        override fun handler(): EventInput.Handler<Public> {
+            return PublicChannelUpdater
+        }
+
         override fun checkPermission(perm: PermissionSet.Permission) {
             guild.selfAsMember.checkPermission(this, perm)
         }
@@ -109,20 +108,6 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
                 Channel.ResolvedPermission(role, perms)
             }
 
-        private fun <T : DiscordId.Identifiable<T>, G : T> filterAndMapOverrides(
-                shouldBeMember: Boolean,
-                objectLookup: (DiscordId<T>) -> Channel.ResolvedPermission<G>
-        ): Observable<Channel.ResolvedPermission<G>> {
-            return observableList<User, MutableMap.MutableEntry<DiscordId<*>, OverrideData>> {
-                overrides.entries
-            }.filter {
-                it.value.isMember == shouldBeMember
-            }.map {
-                @Suppress("UNCHECKED_CAST")
-                objectLookup(it.key as DiscordId<T>)
-            }
-        }
-
         override fun permissionsFor(role: Role): PermissionSet {
             val overrides = overrides[role.id]
             return overrides?.let {
@@ -136,19 +121,6 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
 
         override val isPrivate: Boolean
             get() = false
-
-        override fun channelUpdate(e: Channels.Update) {
-            e.channel.let {
-                this.name = it.name
-                this.topic = it.topic ?: ""
-                this.overrides = translateOverrides(it.permission_overwrites)
-            }
-        }
-
-        override fun voiceStateUpdate(e: Misc.VoiceStateUpdate) {
-            // Pass through to member
-            guild.memberMap[e.update.user_id]?.voiceStateUpdate(e)
-        }
 
         private fun resolveMemberPerms(member: Guild.Member, applyOwnOverride: Boolean): PermissionSet {
             return if (member.id == guild.ownerId) {
@@ -227,6 +199,20 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
             return Transaction(topic, name)
         }
 
+        private fun <T : DiscordId.Identifiable<T>, G : T> filterAndMapOverrides(
+                shouldBeMember: Boolean,
+                objectLookup: (DiscordId<T>) -> Channel.ResolvedPermission<G>
+        ): Observable<Channel.ResolvedPermission<G>> {
+            return Observable.defer {
+                Observable.from(overrides.entries)
+            }.filter {
+                it.value.isMember == shouldBeMember
+            }.map {
+                @Suppress("UNCHECKED_CAST")
+                objectLookup(it.key as DiscordId<T>)
+            }
+        }
+
         inner class Transaction(override var topic: String, override var name: String) : Channel.Public.Edit {
             override fun commit(): CompletableFuture<Channel.Public> {
                 throw UnsupportedOperationException() //FIXME
@@ -240,9 +226,36 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
 
     data class OverrideData(val allow: PermissionSet, val deny: PermissionSet, val isMember: Boolean)
 
+    private object PublicChannelUpdater : EventInput.Handler<Public> {
+        override fun voiceStateUpdate(target: Public, e: Misc.VoiceStateUpdate) {
+            // Pass through to member
+            target.guild.memberMap[e.update.user_id]?.handle(e)
+        }
+
+        override fun typingStart(target: Public, e: Misc.TypingStart) {
+            // Ignored, not something we need to represent
+        }
+
+        override fun channelUpdate(target: Public, e: Channels.Update) {
+            e.channel.let {
+                target.name = it.name
+                target.topic = it.topic ?: ""
+                target.overrides = translateOverrides(it.permission_overwrites)
+            }
+        }
+    }
+
+    /**
+     * Private channel objects start here
+     */
     class Private internal constructor(root: DiscordNode,
                                        id: DiscordId<Channel>,
-                                       override val recipient: UserNode) : ChannelNode(root, id), Channel.Private {
+                                       override val recipient: UserNode
+    ) : ChannelNode<Private>(root, id), Channel.Private {
+        override fun handler(): EventInput.Handler<Private> {
+            return PrivateChannelUpdater
+        }
+
         override fun checkPermission(perm: PermissionSet.Permission) {
             if (perm == PermissionSet.Permission.MANAGE_MESSAGES) {
                 throw PermissionException(PermissionSet.Permission.MANAGE_MESSAGES)
@@ -270,30 +283,16 @@ abstract class ChannelNode private constructor(val root: DiscordNode,
             get() = true
     }
 
+    private object PrivateChannelUpdater : EventInput.Handler<Private> {
+        override fun typingStart(target: Private, e: Misc.TypingStart) {
+            // Ignored
+        }
+    }
+
     companion object {
         private val CHANNEL_NAME_REQUIREMENTS = Pattern.compile("^[A-Za-z0-9\\-]{2,100}$")
 
-        fun from(channel: ChannelModel, guild: GuildNode, root: DiscordNode): ChannelNode.Public {
-            return ChannelNode.Public(
-                    root,
-                    channel.id,
-                    guild,
-                    channel.topic ?: "",
-                    if (channel.type == ChannelModel.Type.TEXT) Channel.Type.TEXT else Channel.Type.VOICE,
-                    channel.name,
-                    translateOverrides(channel.permission_overwrites)
-            )
-        }
-
-        fun from(privateChannel: PrivateChannelModel, root: DiscordNode): ChannelNode.Private {
-            return ChannelNode.Private(
-                    root,
-                    privateChannel.id,
-                    root.userCache.retrieve(privateChannel.recipient)
-            )
-        }
-
-        private fun translateOverrides(
+        internal fun translateOverrides(
                 permission_overwrites: List<ChannelModel.PermissionOverwrites>
         ): LinkedHashMap<DiscordId<*>, OverrideData> {
             val pairs = permission_overwrites.map {

@@ -1,12 +1,15 @@
-package net.serverpeon.discord.internal.data
+package net.serverpeon.discord.internal.data.model
 
 import com.google.common.collect.ImmutableList
 import net.serverpeon.discord.interaction.Editable
 import net.serverpeon.discord.interaction.PermissionException
-import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.data.EventInput
+import net.serverpeon.discord.internal.data.TransactionTristate
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Guilds.EditMemberRequest
 import net.serverpeon.discord.internal.toFuture
-import net.serverpeon.discord.internal.ws.data.inbound.*
+import net.serverpeon.discord.internal.ws.data.inbound.Guilds
+import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.message.Message
 import net.serverpeon.discord.model.*
 import rx.Observable
@@ -23,16 +26,16 @@ class MemberNode(override val guild: GuildNode,
                  override var deaf: Boolean,
                  override var mute: Boolean,
                  override var forcedDeaf: Boolean,
-                 override var forcedMute: Boolean) : Guild.Member, Event.Visitor {
+                 override var forcedMute: Boolean) : Guild.Member, EventInput<MemberNode> {
     private val changeId = AtomicInteger(0)
 
     override val user: User
         get() = this
 
     override val roles: Observable<Role>
-        get() = observableList<Role, RoleNode> {
+        get() = Observable.defer {
             // Sorting needs to happen in a deferred manner to ensure position changes get picked up
-            internalRoles.sortedBy { it.position }
+            Observable.from(internalRoles.sortedBy { it.position })
         }.compose { roleObservable ->
             Observable.concat(roleObservable, Observable.defer {
                 Observable.just(guild.everyoneRole)
@@ -47,35 +50,6 @@ class MemberNode(override val guild: GuildNode,
         get() = userNode.id
     override val username: String
         get() = userNode.username
-
-    override fun presenceUpdate(e: Misc.PresenceUpdate) {
-        userNode.visit(e)
-
-        currentGame = e.game?.name
-        status = mapStatus(e.status)
-    }
-
-    override fun voiceStateUpdate(e: Misc.VoiceStateUpdate) {
-        e.update.let {
-            deaf = it.deaf
-            mute = it.mute
-            forcedMute = it.self_mute
-            forcedDeaf = it.self_deaf
-        }
-    }
-
-    override fun guildMemberUpdate(e: Guilds.Members.Update) {
-        changeId.incrementAndGet()
-        internalRoles = generateRoleList(e.member.roles, guild.roleMap)
-    }
-
-    override fun guildRoleDelete(e: Guilds.Roles.Delete) {
-        if (internalRoles.isNotEmpty() && internalRoles.find { it.id == e.role_id } != null) {
-            internalRoles = ImmutableList.copyOf(internalRoles.filterNot {
-                it.id == e.role_id
-            })
-        }
-    }
 
     override fun toString(): String {
         return "Member(user=$userNode, guild=${guild.id}, roles=$internalRoles, joinedAt=$joinedAt, status=$status, currentGame=$currentGame)"
@@ -103,6 +77,54 @@ class MemberNode(override val guild: GuildNode,
         checkPermission(guild, PermissionSet.Permission.MANAGE_ROLES)
 
         return Transaction(internalRoles.toMutableList())
+    }
+
+    override fun handler(): EventInput.Handler<MemberNode> {
+        return MemberEventHandler
+    }
+
+    fun checkPermission(guild: GuildNode, permission: PermissionSet.Permission) {
+        if (permission !in guild.resolvePermissions(this)) {
+            throw PermissionException(permission)
+        }
+    }
+
+    fun checkPermission(channel: ChannelNode.Public, permission: PermissionSet.Permission) {
+        if (permission !in channel.permissionsFor(this)) {
+            throw PermissionException(permission)
+        }
+    }
+
+    private object MemberEventHandler : EventInput.Handler<MemberNode> {
+        override fun presenceUpdate(target: MemberNode, e: Misc.PresenceUpdate) {
+            target.userNode.handle(e)
+
+            target.currentGame = e.game?.name
+            target.status = mapStatus(e.status)
+        }
+
+        override fun voiceStateUpdate(target: MemberNode, e: Misc.VoiceStateUpdate) {
+            e.update.let {
+                target.deaf = it.deaf
+                target.mute = it.mute
+                target.forcedMute = it.self_mute
+                target.forcedDeaf = it.self_deaf
+            }
+        }
+
+        override fun guildMemberUpdate(target: MemberNode, e: Guilds.Members.Update) {
+            target.changeId.incrementAndGet()
+            target.internalRoles = generateRoleList(e.member.roles, target.guild.roleMap)
+        }
+
+        override fun guildRoleDelete(target: MemberNode, e: Guilds.Roles.Delete) {
+            val roles = target.internalRoles
+            if (roles.isNotEmpty() && roles.find { it.id == e.role_id } != null) {
+                target.internalRoles = ImmutableList.copyOf(roles.filterNot {
+                    it.id == e.role_id
+                })
+            }
+        }
     }
 
     inner class Transaction(override var roles: MutableList<Role>) : Guild.Member.Edit {
@@ -136,26 +158,7 @@ class MemberNode(override val guild: GuildNode,
     }
 
     companion object {
-        fun from(model: MemberModel,
-                 presence: ReadyEventModel.ExtendedGuild.Presence?,
-                 voiceState: VoiceStateModel?,
-                 guildNode: GuildNode,
-                 root: DiscordNode): MemberNode {
-            return MemberNode(
-                    guildNode,
-                    root.userCache.retrieve(model.user.id, model.user),
-                    generateRoleList(model.roles, guildNode.roleMap),
-                    model.joined_at,
-                    presence?.status?.let { mapStatus(it) } ?: Guild.Member.Status.OFFLINE,
-                    presence?.game?.name,
-                    voiceState?.deaf ?: false,
-                    voiceState?.mute ?: false,
-                    voiceState?.self_deaf ?: false,
-                    voiceState?.self_mute ?: false
-            )
-        }
-
-        private fun mapStatus(status: Misc.PresenceUpdate.Status): Guild.Member.Status {
+        internal fun mapStatus(status: Misc.PresenceUpdate.Status): Guild.Member.Status {
             return when (status) {
                 Misc.PresenceUpdate.Status.ONLINE -> Guild.Member.Status.ONLINE
                 Misc.PresenceUpdate.Status.IDLE -> Guild.Member.Status.IDLE
@@ -163,25 +166,13 @@ class MemberNode(override val guild: GuildNode,
             }
         }
 
-        private fun generateRoleList(roles: Iterable<DiscordId<Role>>?,
-                                     lookup: Map<DiscordId<Role>, RoleNode>): List<RoleNode> {
+        internal fun generateRoleList(roles: Iterable<DiscordId<Role>>?,
+                                      lookup: Map<DiscordId<Role>, RoleNode>): List<RoleNode> {
             return roles?.let { roles ->
                 ImmutableList.copyOf(roles.map {
                     lookup[it]!!
                 })
             } ?: ImmutableList.of()
-        }
-    }
-
-    fun checkPermission(guild: GuildNode, permission: PermissionSet.Permission) {
-        if (permission !in guild.resolvePermissions(this)) {
-            throw PermissionException(permission)
-        }
-    }
-
-    fun checkPermission(channel: ChannelNode.Public, permission: PermissionSet.Permission) {
-        if (permission !in channel.permissionsFor(this)) {
-            throw PermissionException(permission)
         }
     }
 }

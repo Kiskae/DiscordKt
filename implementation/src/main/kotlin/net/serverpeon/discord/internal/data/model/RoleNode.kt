@@ -1,11 +1,11 @@
-package net.serverpeon.discord.internal.data
+package net.serverpeon.discord.internal.data.model
 
 import net.serverpeon.discord.interaction.Editable
-import net.serverpeon.discord.internal.rest.data.RoleModel
-import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.data.EventInput
+import net.serverpeon.discord.internal.data.TransactionTristate
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Guilds.EditRoleRequest
 import net.serverpeon.discord.internal.toFuture
-import net.serverpeon.discord.internal.ws.data.inbound.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Guilds
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PermissionSet
@@ -22,19 +22,8 @@ class RoleNode(private val root: DiscordNode,
                override var grouped: Boolean,
                override var permissions: PermissionSet,
                override var color: Color,
-               var position: Int) : Role, Event.Visitor {
+               var position: Int) : Role, EventInput<RoleNode> {
     private val changeId = AtomicInteger(0)
-
-    override fun guildRoleUpdate(e: Guilds.Roles.Update) {
-        changeId.incrementAndGet()
-        e.role.let {
-            color = it.color
-            permissions = it.permissions
-            grouped = it.hoist
-            name = it.name
-            position = it.position
-        }
-    }
 
     override fun edit(): Role.Edit {
         guild.selfAsMember.checkPermission(guild, PermissionSet.Permission.MANAGE_ROLES)
@@ -48,6 +37,23 @@ class RoleNode(private val root: DiscordNode,
 
     override fun toString(): String {
         return "Role(id=$id, name='$name', imported=$imported, grouped=$grouped, permissions=$permissions, color=$color)"
+    }
+
+    override fun handler(): EventInput.Handler<RoleNode> {
+        return RoleEventHandler
+    }
+
+    private object RoleEventHandler : EventInput.Handler<RoleNode> {
+        override fun guildRoleUpdate(target: RoleNode, e: Guilds.Roles.Update) {
+            target.changeId.incrementAndGet()
+            e.role.let {
+                target.color = it.color
+                target.permissions = it.permissions
+                target.grouped = it.hoist
+                target.name = it.name
+                target.position = it.position
+            }
+        }
     }
 
     private inner class Transaction(override var color: Color,
@@ -72,7 +78,7 @@ class RoleNode(private val root: DiscordNode,
                         name = name,
                         permissions = permissions
                 )).toFuture().thenApply {
-                    RoleNode.from(it, guild, root)
+                    Builder.role(it, guild)
                 }
             }
         }
@@ -83,20 +89,6 @@ class RoleNode(private val root: DiscordNode,
             } else if (aborted == TransactionTristate.COMPLETED) {
                 throw IllegalArgumentException("abort() after complete()")
             }
-        }
-    }
-
-    companion object {
-        fun from(model: RoleModel, guild: GuildNode, root: DiscordNode): RoleNode {
-            return RoleNode(root,
-                    guild,
-                    model.id,
-                    model.name,
-                    model.managed,
-                    model.hoist,
-                    model.permissions,
-                    model.color,
-                    model.position);
         }
     }
 }

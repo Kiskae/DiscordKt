@@ -1,8 +1,8 @@
-package net.serverpeon.discord.internal.data
+package net.serverpeon.discord.internal.data.model
 
 import net.serverpeon.discord.interaction.Editable
-import net.serverpeon.discord.internal.rest.data.MessageModel
-import net.serverpeon.discord.internal.rest.data.WrappedId
+import net.serverpeon.discord.internal.data.TransactionTristate
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Channels
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.message.Message
@@ -20,7 +20,7 @@ class MessageNode(val root: DiscordNode,
                   override val rawContent: String,
                   override val id: DiscordId<PostedMessage>,
                   override val author: User,
-                  override val channel: ChannelNode) : PostedMessage {
+                  override val channel: ChannelNode<*>) : PostedMessage {
     override val content: Message by lazy { parse(rawContent, root) }
 
     override fun edit(): PostedMessage.Edit {
@@ -49,7 +49,7 @@ class MessageNode(val root: DiscordNode,
                 return root.api.Channels.editMessage(WrappedId(channel.id), WrappedId(id), Channels.EditMessageRequest(
                         content = content.encodedContent,
                         mentions = content.mentions.map { it.id }.toList().toBlocking().first()
-                )).toFuture().thenApply { MessageNode.from(it, root) }
+                )).toFuture().thenApply { Builder.message(it, root) }
             }
         }
 
@@ -64,20 +64,7 @@ class MessageNode(val root: DiscordNode,
     }
 
     companion object {
-        fun from(model: MessageModel, root: DiscordNode): MessageNode {
-            return MessageNode(
-                    root,
-                    model.timestamp,
-                    model.tts,
-                    model.edited_timestamp,
-                    model.content,
-                    model.id,
-                    root.userCache.retrieve(model.author),
-                    root.channelMap[model.channel_id]!!
-            )
-        }
-
-        fun parse(content: String, root: DiscordNode): Message {
+        private fun parse(content: String, root: DiscordNode): Message {
             val len = content.length
             var i = 0
             val builder = Message.Builder()
