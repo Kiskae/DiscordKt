@@ -26,7 +26,9 @@ interface User : DiscordId.Identifiable<User> {
     val avatar: DiscordId<Avatar>?
 
     /**
+     * Sends a private message to this user.
      *
+     * If there is not yet a private channel between the client and this user then that channel will be created.
      */
     fun sendMessage(message: Message): CompletableFuture<PostedMessage>
 

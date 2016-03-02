@@ -176,9 +176,7 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
         /**
          * Resolves the active set of permissions for the given channel for this user.
          */
-        fun permissionsFor(channel: Channel.Public): PermissionSet {
-            return channel.permissionsFor(this)
-        }
+        fun permissionsFor(channel: Channel.Public) = channel.permissionsFor(this)
 
         /**
          * Kicks this user from the guild.

@@ -3,13 +3,16 @@ package net.serverpeon.discord.interaction
 import java.util.concurrent.CompletableFuture
 
 /**
+ * Marks an object as editable, this means that certain properties of the existing model can be changed through
+ * a transaction with Discord.
+ *
  * @property T The resource that is being edited
  * @property G The transaction that represents all the desired edits.
  */
 interface Editable<T : Editable<T, G>, G : Editable.Transaction<G, T>> {
 
     /**
-     * Start a new transaction to change the given resource.
+     * Start a new transaction to change this resource.
      */
     @Throws(PermissionException::class)
     fun edit(): G
