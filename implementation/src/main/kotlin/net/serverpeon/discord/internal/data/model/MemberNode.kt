@@ -95,6 +95,24 @@ class MemberNode(override val guild: GuildNode,
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other?.javaClass != javaClass) return false
+
+        other as MemberNode
+
+        if (guild != other.guild) return false
+        if (userNode != other.userNode) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = guild.hashCode()
+        result += 31 * result + userNode.hashCode()
+        return result
+    }
+
     private object MemberEventHandler : EventInput.Handler<MemberNode> {
         override fun presenceUpdate(target: MemberNode, e: Misc.PresenceUpdate) {
             target.userNode.handle(e)
@@ -126,6 +144,7 @@ class MemberNode(override val guild: GuildNode,
             }
         }
     }
+
 
     inner class Transaction(override var roles: MutableList<Role>) : Guild.Member.Edit {
         private var completed = AtomicBoolean(false)

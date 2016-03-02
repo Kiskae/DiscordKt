@@ -159,6 +159,19 @@ class GuildNode internal constructor(val root: DiscordNode,
         return GuildEventHandler
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other?.javaClass != javaClass) return false
+
+        other as GuildNode
+
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
     private object GuildEventHandler : EventInput.Handler<GuildNode> {
 
         override fun guildUpdate(target: GuildNode, e: Guilds.General.Update) {
@@ -271,6 +284,7 @@ class GuildNode internal constructor(val root: DiscordNode,
             }
         }
     }
+
 
     private enum class GuildEditFlags {
         REGION,

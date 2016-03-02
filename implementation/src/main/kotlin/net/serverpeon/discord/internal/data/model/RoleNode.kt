@@ -43,6 +43,24 @@ class RoleNode(private val root: DiscordNode,
         return RoleEventHandler
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other?.javaClass != javaClass) return false
+
+        other as RoleNode
+
+        if (guild != other.guild) return false
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = guild.hashCode()
+        result += 31 * result + id.hashCode()
+        return result
+    }
+
     private object RoleEventHandler : EventInput.Handler<RoleNode> {
         override fun guildRoleUpdate(target: RoleNode, e: Guilds.Roles.Update) {
             target.changeId.incrementAndGet()
@@ -80,4 +98,6 @@ class RoleNode(private val root: DiscordNode,
             }
         }
     }
+
+
 }

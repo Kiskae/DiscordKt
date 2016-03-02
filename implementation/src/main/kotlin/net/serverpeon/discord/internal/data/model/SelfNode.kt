@@ -19,4 +19,19 @@ class SelfNode(val root: DiscordNode,
     override fun sendMessage(message: Message): CompletableFuture<PostedMessage> {
         throw IllegalStateException("Why are you trying to send a message to yourself!")
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is UserNode) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+
 }

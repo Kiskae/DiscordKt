@@ -45,6 +45,7 @@ interface UserNode : User, EventInput<UserNode> {
         }
     }
 
+
     class Profile(val root: DiscordNode,
                   override val id: DiscordId<User>,
                   override var username: String,
@@ -63,6 +64,7 @@ interface UserNode : User, EventInput<UserNode> {
             return "Profile(id=$id, username='$username', discriminator='$discriminator', avatar=$avatar)"
         }
 
+
         private fun privateChannel(): Observable<Channel.Private> {
             val createNew = root.api.Users.createPrivateChannel(
                     WrappedId(root.self.id),
@@ -76,6 +78,19 @@ interface UserNode : User, EventInput<UserNode> {
             }
 
             return getCurrent.switchIfEmpty(createNew)
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is UserNode) return false
+
+            if (id != other.id) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return id.hashCode()
         }
     }
 }

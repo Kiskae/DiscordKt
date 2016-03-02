@@ -75,6 +75,20 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
 
     abstract fun checkPermission(perm: PermissionSet.Permission)
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other?.javaClass != javaClass) return false
+
+        other as ChannelNode<*>
+
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+
     /**
      * Public channel objects start here
      */
