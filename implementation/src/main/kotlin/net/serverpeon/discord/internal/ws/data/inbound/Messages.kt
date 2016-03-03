@@ -24,7 +24,24 @@ interface Messages {
             val author: UserModel?,
             val content: String?,
             val channel_id: DiscordId<Channel>,
-            val mentions: List<UserModel>?)
+            val mentions: List<UserModel>?) {
+        fun toMessageModel(): MessageModel {
+            return MessageModel(
+                    nonce,
+                    attachments!!,
+                    tts!!,
+                    embeds,
+                    timestamp!!,
+                    mention_everyone!!,
+                    id,
+                    edited_timestamp,
+                    author!!,
+                    content!!,
+                    channel_id,
+                    mentions!!
+            )
+        }
+    }
 
     data class Delete(val id: DiscordId<PostedMessage>, val channel_id: DiscordId<Channel>) : Messages
     data class Acknowledge(val message_id: DiscordId<PostedMessage>, val channel_id: DiscordId<Channel>) : Messages

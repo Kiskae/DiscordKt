@@ -1,5 +1,8 @@
 package net.serverpeon.discord
 
+import com.google.common.eventbus.Subscribe
+import net.serverpeon.discord.event.Event
+
 fun main(args: Array<String>) {
     val token = System.getenv("DISCORD_TOKEN")
     val email = System.getenv("DISCORD_EMAIL")
@@ -13,12 +16,14 @@ fun main(args: Array<String>) {
         }
     }.retries(0).build()
 
-    // Kick off model update with a dummy model access
-    client.guilds().subscribe { guild ->
-        guild.roles.subscribe { role ->
-            println("${guild.name} / ${role.name} -> ${role.color}")
+    client.eventBus().register(object {
+        @Subscribe
+        fun event(ev: Event) {
+            println(ev)
         }
-    }
+    })
+
+    client.startEmittingEvents()
 
     client.closeFuture().await()
 }

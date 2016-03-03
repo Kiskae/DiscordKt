@@ -4,6 +4,7 @@ import com.google.common.eventbus.EventBus
 import com.google.gson.Gson
 import com.jakewharton.rxrelay.BehaviorRelay
 import net.serverpeon.discord.DiscordClient
+import net.serverpeon.discord.internal.data.event.EventPublisher
 import net.serverpeon.discord.internal.data.model.DiscordNode
 import net.serverpeon.discord.internal.data.model.RegionNode
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
