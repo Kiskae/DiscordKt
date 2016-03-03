@@ -191,9 +191,12 @@ class GuildNode internal constructor(val root: DiscordNode,
                 = target.wireToUser(e.member.user.id, e)
 
         override fun guildMemberRemove(target: GuildNode, e: Guilds.Members.Remove) {
-            check(e.member.user.id in target.memberMap) { "Trying to remove non-existent member: $e" }
-            e.value = target.memberMap[e.member.user.id]
-            target.memberMap -= e.member.user.id
+            // FIXME: member might not exist when the REMOVE event happens
+            // check(e.member.user.id in target.memberMap) { "Trying to remove non-existent member: $e" }
+            target.memberMap[e.member.user.id]?.let {
+                e.value = it
+                target.memberMap -= it.userNode.id
+            }
         }
 
         override fun guildBanAdd(target: GuildNode, e: Guilds.Bans.Add) {
