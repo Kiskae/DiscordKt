@@ -32,7 +32,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                     gson: Gson,
                     private val eventBus: EventBus,
                     metadata: DiscordClient.Builder.UserMetadata,
-                    private val retryHandler: RetryHandler) : DiscordClient {
+                    private val retryHandler: RetryHandler) : DiscordClient, ClientModel {
     companion object {
         private val logger = createLogger()
         private const val DISCORD_API_VERSION = 3
@@ -139,11 +139,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun guilds(): Observable<Guild> {
-        return ensureSafeModelAccess().flatMap { it.guilds }
-    }
-
-    fun repr(): Single<String> {
-        return ensureSafeModelAccess().map { it.toString() }.toSingle()
+        return ensureSafeModelAccess().flatMap { it.guilds() }
     }
 
     override fun getGuildById(id: DiscordId<Guild>): Observable<Guild> {
@@ -153,9 +149,9 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun createGuild(name: String, region: Region): CompletableFuture<Guild> {
-        return ensureSafeModelAccess().flatMap {
+        return ensureSafeModelAccess().map {
             it.createGuild(name, region)
-        }.toFuture()
+        }.toFuture().thenCompose { it }
     }
 
     override fun getUserById(id: DiscordId<User>): Observable<User> {
@@ -166,7 +162,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
 
     override fun privateChannels(): Observable<Channel.Private> {
         return ensureSafeModelAccess().flatMap {
-            it.privateChannels
+            it.privateChannels()
         }
     }
 
@@ -177,11 +173,15 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private> {
-        return getChannelById(id).filter { it.isPrivate }.cast(Channel.Private::class.java)
+        return ensureSafeModelAccess().flatMap {
+            it.getPrivateChannelById(id)
+        }
     }
 
     override fun getPrivateChannelByUser(userId: DiscordId<User>): Observable<Channel.Private> {
-        return privateChannels().filter { it.recipient.id == userId }.first()
+        return ensureSafeModelAccess().flatMap {
+            it.getPrivateChannelByUser(userId)
+        }
     }
 
     override fun getAvailableServerRegions(): Observable<Region> {
@@ -195,7 +195,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun setStatus(game: String?, idle: Boolean): CompletableFuture<Void> {
-        throw NotImplementedError("Pending session stuff")
+        throw UnsupportedOperationException("Not yet implemented")
     }
 
     override fun eventBus(): EventBus {

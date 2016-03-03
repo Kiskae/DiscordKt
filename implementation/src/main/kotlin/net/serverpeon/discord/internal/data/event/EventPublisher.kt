@@ -12,6 +12,7 @@ import net.serverpeon.discord.internal.ws.client.EventWrapper
 import net.serverpeon.discord.internal.ws.data.inbound.Channels
 import net.serverpeon.discord.internal.ws.data.inbound.Guilds
 import net.serverpeon.discord.internal.ws.data.inbound.Messages
+import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.PostedMessage
@@ -116,6 +117,10 @@ internal class EventPublisher(val eventBus: EventBus) : Action2<EventWrapper, Di
         mapSimple<Guilds.Roles.Delete> { event, model ->
             val guild = model.guildMap[event.guild_id]!!
             RoleDeleted(event.value!!, guild)
+        }
+
+        mapSimple<Misc.Ready> { event, model ->
+            ModelReady(model)
         }
     }
 

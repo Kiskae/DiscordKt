@@ -1,5 +1,6 @@
 package net.serverpeon.discord.internal.data.event
 
+import net.serverpeon.discord.event.ModelReadyEvent
 import net.serverpeon.discord.event.ban.BanCreateEvent
 import net.serverpeon.discord.event.ban.BanRemoveEvent
 import net.serverpeon.discord.event.channel.ChannelCreateEvent
@@ -49,3 +50,5 @@ data class MessageDeleted(
 data class RoleAdded(override val role: Role, override val guild: Guild) : RoleCreateEvent
 data class RoleEdited(override val role: Role, override val guild: Guild) : RoleUpdateEvent
 data class RoleDeleted(override val deletedRole: Role, override val guild: Guild) : RoleDeleteEvent
+
+data class ModelReady(override val model: ClientModel) : ModelReadyEvent

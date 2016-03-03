@@ -7,16 +7,17 @@ import net.serverpeon.discord.internal.kDebug
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Guilds.CreateGuildRequest
 import net.serverpeon.discord.internal.rxObservable
+import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.Channels
 import net.serverpeon.discord.internal.ws.data.inbound.Event
 import net.serverpeon.discord.internal.ws.data.inbound.Guilds
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.model.*
 import rx.Observable
+import java.util.concurrent.CompletableFuture
 import kotlin.properties.Delegates
 
-class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode> {
-
+class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
     internal val userCache = UserCache(this)
     internal var guildMap = createEmptyMap<Guild, GuildNode>()
     internal var channelMap = createEmptyMap<Channel, ChannelNode<*>>()
@@ -27,17 +28,17 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode> {
             Observable.from<Guild>(guildMap.values)
         }
 
-    fun getGuildById(id: DiscordId<Guild>): Observable<Guild> {
+    override fun getGuildById(id: DiscordId<Guild>): Observable<Guild> {
         return observableLookup(id) { guildMap[it] }
     }
 
-    fun getUserById(id: DiscordId<User>): Observable<User> {
+    override fun getUserById(id: DiscordId<User>): Observable<User> {
         return observableLookup(id) {
             userCache.retrieve(it)
         }
     }
 
-    fun getChannelById(id: DiscordId<Channel>): Observable<Channel> {
+    override fun getChannelById(id: DiscordId<Channel>): Observable<Channel> {
         return observableLookup(id) {
             channelMap[it]
         }
@@ -48,15 +49,45 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode> {
             Observable.from(channelMap.values)
         }.filter {
             it.isPrivate
-        }.cast(Channel.Private::class.java)
+        }.map { it as Channel.Private }
 
-    fun createGuild(name: String, region: Region): Observable<Guild> {
+    override fun createGuild(name: String, region: Region): CompletableFuture<Guild> {
         return api.Guilds.createGuild(CreateGuildRequest(
                 name = name,
                 region = region
-        )).rxObservable().map {
+        )).toFuture().thenApply {
             Builder.guild(it, this)
         }
+    }
+
+    override fun guilds(): Observable<Guild> {
+        return guilds
+    }
+
+    override fun privateChannels(): Observable<Channel.Private> {
+        return privateChannels
+    }
+
+    override fun getPrivateChannelById(id: DiscordId<Channel>): Observable<Channel.Private> {
+        return getChannelById(id).filter {
+            it.isPrivate
+        }.map {
+            it as Channel.Private
+        }
+    }
+
+    override fun getPrivateChannelByUser(userId: DiscordId<User>): Observable<Channel.Private> {
+        return privateChannels().first {
+            it.recipient.id == userId
+        }
+    }
+
+    override fun getAvailableServerRegions(): Observable<Region> {
+        return api.Voice.serverRegions()
+                .rxObservable()
+                .flatMapIterable {
+                    it
+                }.map { RegionNode.create(it) }
     }
 
     override fun handler(): EventInput.Handler<DiscordNode> {
