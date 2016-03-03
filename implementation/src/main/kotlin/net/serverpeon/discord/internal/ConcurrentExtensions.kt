@@ -102,7 +102,8 @@ fun <T> Observable<T>.toFuture(): CompletableFuture<T> {
         if (th is CancellationException) {
             subscription.unsubscribe()
         }
-        null as Nothing
+        @Suppress("CAST_NEVER_SUCCEEDS")
+        (null as Nothing)
     })
     return future
 }

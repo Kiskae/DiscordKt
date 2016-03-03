@@ -17,7 +17,7 @@ internal object DiscordHandlers {
                 }
             }
             registerType("CHANNEL_UPDATE") { Channels.Update(it.parse()) }
-            registerType("CHANNEL_DELETE") { data ->
+            registerType<Channels.Delete>("CHANNEL_DELETE") { data ->
                 if (data.asJsonObject.has("recipient")) {
                     Channels.Delete.Private(data.parse())
                 } else {
