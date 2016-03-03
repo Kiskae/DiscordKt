@@ -39,6 +39,11 @@ object DiscordWebsocket {
 
             sub.add(connectableRx.subscribe(sub)) // Event passthrough to upper subscriber
 
+            //DEBUG
+            connectableRx.doOnTerminate {
+                logger.kDebug { "Connection terminated" }
+            }.connectTo(sub)
+
             // Finally begin emitting from the base observable
             connectableRx.connect { subscription ->
                 logger.kDebug { "Event stream initialized" }

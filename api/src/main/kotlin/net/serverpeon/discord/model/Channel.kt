@@ -144,7 +144,7 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
         val recipient: User
     }
 
-    interface Text {
+    interface Text : Channel {
 
         /**
          * Overload for [sendMessage] with textToSpeech set to null.
@@ -183,7 +183,7 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
         fun indicateTyping(): Completable
     }
 
-    interface Voice {
+    interface Voice : Channel {
         /**
          * Retrieves the current voice states for all people in this voice channel.
          *

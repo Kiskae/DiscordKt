@@ -124,7 +124,10 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
 
             logger.kDebug { "Guild created: ${e.guild.id.repr}#${e.guild.name}" }
 
-            target.guildMap += Builder.guild(e.guild, target)
+            Builder.guild(e.guild, target).apply {
+                target.guildMap += this
+                target.channelMap = combineMaps(target.channelMap, this.channelMap)
+            }
         }
 
         override fun guildDelete(target: DiscordNode, e: Guilds.General.Delete) {

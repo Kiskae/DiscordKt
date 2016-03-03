@@ -80,7 +80,5 @@ internal object MessageParts {
         fun prettyRepr(): String
 
         fun encodedRepr(): String
-
-
     }
 }

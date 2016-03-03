@@ -101,5 +101,7 @@ interface Message {
             get() = parts.fold(StringBuilder()) { sb, part ->
                 sb.append(part.prettyRepr())
             }.toString()
+
+        override fun toString(): String = content
     }
 }

@@ -98,6 +98,7 @@ class MessageNode(val root: DiscordNode,
                     } else {
                         // Append final part of the string
                         builder.append(content.substring(i))
+                        i = len
                     }
                 } else if (isBefore(codeBlockEsc, listOf(specialEsc))) {
                     if (codeBlockEsc + 3 < len) {
@@ -120,6 +121,7 @@ class MessageNode(val root: DiscordNode,
                 } else {
                     // No tags left, just append the test of the string
                     builder.append(content.substring(i))
+                    i = len
                 }
             }
 
