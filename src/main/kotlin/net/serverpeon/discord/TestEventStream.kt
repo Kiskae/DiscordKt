@@ -1,6 +1,4 @@
-package net.serverpeon.discord.internal
-
-import net.serverpeon.discord.DiscordClient
+package net.serverpeon.discord
 
 fun main(args: Array<String>) {
     val token = System.getenv("DISCORD_TOKEN")

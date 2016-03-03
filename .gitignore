@@ -68,4 +68,4 @@ crashlytics-build.properties
 fabric.properties
 
 ## Runtime stuff
-lastrun.log
+/logs/
