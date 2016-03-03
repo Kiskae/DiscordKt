@@ -1,5 +1,6 @@
 package net.serverpeon.discord.internal.data.model
 
+import net.serverpeon.discord.internal.jsonmodels.MessageModel
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Channels
 import net.serverpeon.discord.internal.toFuture
@@ -35,6 +36,10 @@ class MessageNode(val root: DiscordNode,
         ).toFuture()
     }
 
+    override fun toString(): String {
+        return "Message(postedAt=$postedAt, tts=$textToSpeech, lastEdited=${lastEdited ?: postedAt}, rawContent='$rawContent', id=$id, author=$author, channel=$channel)"
+    }
+
     inner class Transaction(override var content: Message) : PostedMessage.Edit {
         private var completed = AtomicBoolean(false)
 
@@ -51,6 +56,8 @@ class MessageNode(val root: DiscordNode,
     }
 
     companion object {
+        fun create(model: MessageModel, root: DiscordNode) = Builder.message(model, root)
+
         private fun parse(content: String, root: DiscordNode): Message {
             val len = content.length
             var i = 0

@@ -232,6 +232,10 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
             }
         }
 
+        override fun toString(): String {
+            return "PublicChannel(guild='${guild.name}', name='$name')"
+        }
+
         inner class Transaction(override var topic: String, override var name: String) : Channel.Public.Edit {
             private var completed = AtomicBoolean(false)
             private val changeIdAtInit = changeId.get()
@@ -306,6 +310,10 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
             )).toFuture().thenApply {
                 error("Message not yet translatable")
             }
+        }
+
+        override fun toString(): String {
+            return "PrivateChannel(recipient=$recipient)"
         }
 
         override val type: Channel.Type

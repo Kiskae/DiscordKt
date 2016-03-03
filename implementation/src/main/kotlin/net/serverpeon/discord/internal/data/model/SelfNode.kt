@@ -13,7 +13,7 @@ class SelfNode(val root: DiscordNode,
                override var avatar: DiscordId<User.Avatar>?,
                var email: String) : UserNode {
     override fun toString(): String {
-        return "Self(id=$id, username='$username', discriminator='$discriminator', avatar=$avatar, email='$email')"
+        return "Self(id=$id, username='$username', discriminator='$discriminator', avatar=$avatar)"
     }
 
     override fun sendMessage(message: Message): CompletableFuture<PostedMessage> {
