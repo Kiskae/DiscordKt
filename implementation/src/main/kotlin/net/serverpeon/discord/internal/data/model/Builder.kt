@@ -6,7 +6,9 @@ import net.serverpeon.discord.internal.data.toImmutableIdMap
 import net.serverpeon.discord.internal.jsonmodels.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.model.Channel
+import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
+import net.serverpeon.discord.model.Invite
 
 internal object Builder {
     fun root(data: ReadyEventModel, api: ApiWrapper): DiscordNode {
@@ -150,5 +152,42 @@ internal object Builder {
                 self.avatar,
                 self.email
         )
+    }
+
+    fun invite(invite: InviteModel.Basic, root: DiscordNode): InviteNode {
+        return InviteNode(root,
+                invite.guild.let {
+                    Invite.GuildSpec(it.id, it.name)
+                },
+                invite.channel.let {
+                    Invite.ChannelSpec(it.id, it.name, if (it.type == ChannelModel.Type.TEXT) Channel.Type.TEXT else Channel.Type.VOICE)
+                },
+                invite.xkcdpass?.let { DiscordId<Invite>(it) },
+                invite.code);
+    }
+
+    fun invite(invite: InviteModel.Rich, root: DiscordNode): InviteNode.Rich {
+        val expiresAt = if (invite.max_age != 0) {
+            invite.created_at.toInstant().plusSeconds(invite.max_age.toLong())
+        } else {
+            null
+        }
+
+        return InviteNode.Rich(root,
+                invite.guild.let {
+                    Invite.GuildSpec(it.id, it.name)
+                },
+                invite.channel.let {
+                    Invite.ChannelSpec(it.id, it.name, if (it.type == ChannelModel.Type.TEXT) Channel.Type.TEXT else Channel.Type.VOICE)
+                },
+                invite.xkcdpass?.let { DiscordId<Invite>(it) },
+                invite.code,
+                root.userCache.retrieve(invite.inviter),
+                invite.revoked,
+                invite.temporary,
+                invite.created_at,
+                invite.uses,
+                invite.max_uses,
+                expiresAt);
     }
 }

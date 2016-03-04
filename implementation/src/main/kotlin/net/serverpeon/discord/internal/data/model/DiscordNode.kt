@@ -4,6 +4,7 @@ import net.serverpeon.discord.internal.createLogger
 import net.serverpeon.discord.internal.data.*
 import net.serverpeon.discord.internal.jsonmodels.ReadyEventModel
 import net.serverpeon.discord.internal.kDebug
+import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Guilds.CreateGuildRequest
 import net.serverpeon.discord.internal.rxObservable
@@ -15,6 +16,7 @@ import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.model.*
 import rx.Observable
 import java.util.concurrent.CompletableFuture
+import java.util.regex.Pattern
 import kotlin.properties.Delegates
 
 class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
@@ -88,6 +90,14 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
                 .flatMapIterable {
                     it
                 }.map { RegionNode.create(it) }
+    }
+
+    override fun getInvite(code_or_url: String): Observable<Invite> {
+        return api.Invites.getInvite(WrappedId(parseCode(code_or_url)))
+                .rxObservable()
+                .map {
+                    Builder.invite(it, this)
+                }
     }
 
     override fun handler(): EventInput.Handler<DiscordNode> {
@@ -173,7 +183,17 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
 
     companion object {
         private val logger = createLogger()
+        private val INVITE_REGEX = Pattern.compile("^(?:https?\\:\\/\\/)?discord\\.gg\\/(.+)$")
 
         fun build(data: ReadyEventModel, api: ApiWrapper) = Builder.root(data, api)
+
+        fun parseCode(code_or_url: String): DiscordId<Invite> {
+            val matcher = INVITE_REGEX.matcher(code_or_url)
+            return if (matcher.matches()) {
+                DiscordId(matcher.group(1))
+            } else {
+                DiscordId(code_or_url)
+            }
+        }
     }
 }

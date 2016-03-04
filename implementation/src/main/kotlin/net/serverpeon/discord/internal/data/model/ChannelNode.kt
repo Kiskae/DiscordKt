@@ -142,9 +142,26 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
         override fun createInvite(expiredAfter: Duration,
                                   maxUses: Int,
                                   temporaryMembership: Boolean,
-                                  xkcd: Boolean
+                                  humanReadableId: Boolean
         ): CompletableFuture<Invite.Details> {
-            throw UnsupportedOperationException()
+            checkPermission(PermissionSet.Permission.CREATE_INSTANT_INVITE)
+            return root.api.Channels.createInvite(WrappedId(id), InviteSpec(
+                    max_age = expiredAfter.seconds.toInt(),
+                    max_uses = maxUses,
+                    temporary = temporaryMembership,
+                    xkcdpass = humanReadableId
+            )).toFuture().thenApply {
+                Builder.invite(it, root)
+            }
+        }
+
+        override fun getActiveInvites(): Observable<Invite.Details> {
+            checkPermission(PermissionSet.Permission.MANAGE_CHANNEL)
+            return root.api.Channels.getChannelInvites(WrappedId(id)).rxObservable().flatMapIterable {
+                it
+            }.map {
+                Builder.invite(it, root)
+            }
         }
 
         override val isPrivate: Boolean

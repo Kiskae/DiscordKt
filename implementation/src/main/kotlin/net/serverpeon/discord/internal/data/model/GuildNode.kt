@@ -6,6 +6,7 @@ import net.serverpeon.discord.internal.jsonmodels.ChannelModel
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.Guilds.ChannelCreationRequest
 import net.serverpeon.discord.internal.rest.retro.Guilds.EditGuildRequest
+import net.serverpeon.discord.internal.rxObservable
 import net.serverpeon.discord.internal.toFuture
 import net.serverpeon.discord.internal.ws.data.inbound.Channels
 import net.serverpeon.discord.internal.ws.data.inbound.Event
@@ -138,6 +139,15 @@ class GuildNode internal constructor(val root: DiscordNode,
 
     override fun leave(): CompletableFuture<Void> {
         return root.api.Me.leaveGuild(WrappedId(id)).toFuture()
+    }
+
+    override fun getActiveInvites(): Observable<Invite.Details> {
+        selfAsMember.checkPermission(this, PermissionSet.Permission.MANAGE_SERVER)
+        return root.api.Guilds.getGuildInvites(WrappedId(id)).rxObservable().flatMapIterable {
+            it
+        }.map {
+            Builder.invite(it, root)
+        }
     }
 
     override val selfAsMember: MemberNode

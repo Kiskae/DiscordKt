@@ -88,15 +88,29 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
         /**
          * TODO
          *
-         * @param expiredAfter
-         * @param maxUses
-         * @param temporaryMembership
-         * @param xkcd
+         * @param expiredAfter Sets the invite to expire after this amount of time has passed. Set to [Duration.ZERO]
+         *                     to make the invite never expire.
+         * @param maxUses Limit the number of times the invite can be used. Set to 0 for unlimited.
+         * @param temporaryMembership Whether this invite grants temporary membership, which means the user will be
+         *                            kicked from the server when they go offline.
+         * @param humanReadableId Whether to generate a human-readable invite using the method described in
+         *                        http://xkcd.com/936/ instead of a random alphanumeric code.
+         * @throws PermissionException if the client does now have [PermissionSet.Permission.CREATE_INSTANT_INVITE]
          */
+        @Throws(PermissionException::class)
         fun createInvite(expiredAfter: Duration = Duration.ZERO,
                          maxUses: Int = 0,
                          temporaryMembership: Boolean = false,
-                         xkcd: Boolean = false): CompletableFuture<Invite.Details>
+                         humanReadableId: Boolean = false): CompletableFuture<Invite.Details>
+
+        /**
+         * TODO
+         *
+         * @throws PermissionException If the client does not have [PermissionSet.Permission.MANAGE_CHANNEL] for this
+         *                             channel.
+         */
+        @Throws(PermissionException::class)
+        fun getActiveInvites(): Observable<Invite.Details>
 
         /**
          * Customizes the permissions for the given member.

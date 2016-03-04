@@ -120,6 +120,15 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
      */
     fun leave(): CompletableFuture<Void>
 
+    /**
+     * TODO
+     *
+     * @throws PermissionException If the client does not have [PermissionSet.Permission.MANAGE_SERVER] for this
+     *                             server.
+     */
+    @Throws(PermissionException::class)
+    fun getActiveInvites(): Observable<Invite.Details>
+
     interface Edit : Editable.Transaction<Edit, Guild> {
         /**
          * Name of the guild, must be between 2 and 100 characters long.

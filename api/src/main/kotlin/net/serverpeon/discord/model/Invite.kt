@@ -1,9 +1,13 @@
 package net.serverpeon.discord.model
 
+import net.serverpeon.discord.interaction.PermissionException
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.concurrent.CompletableFuture
 
+/**
+ * TODO
+ */
 interface Invite : DiscordId.Identifiable<Invite> {
     val guild: GuildSpec
 
@@ -13,7 +17,7 @@ interface Invite : DiscordId.Identifiable<Invite> {
 
     data class ChannelSpec(val id: DiscordId<Channel>, val name: String, val type: Channel.Type)
 
-    val xkcd: DiscordId<Invite>?
+    val humanReadableId: DiscordId<Invite>?
 
     fun accept(): CompletableFuture<Void>
 
@@ -31,5 +35,8 @@ interface Invite : DiscordId.Identifiable<Invite> {
         val maxUses: Int
 
         val expiresAt: Instant?
+
+        @Throws(PermissionException::class)
+        fun revoke(): CompletableFuture<Void>
     }
 }

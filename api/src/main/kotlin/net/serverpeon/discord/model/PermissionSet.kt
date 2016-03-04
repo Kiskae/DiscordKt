@@ -95,7 +95,7 @@ data class PermissionSet internal constructor(private val permissions: EnumSet<P
 
     enum class Permission {
         /**
-         * FIXME: invite interface
+         * Required for [Channel.Public.createInvite]
          */
         CREATE_INSTANT_INVITE,
         /**

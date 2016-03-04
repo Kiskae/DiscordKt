@@ -58,4 +58,11 @@ interface ClientModel {
      * This is used to change the region of a server in [Guild.edit].
      */
     fun getAvailableServerRegions(): Observable<Region>
+
+    /**
+     * TODO
+     *
+     * @param code_or_url
+     */
+    fun getInvite(code_or_url: String): Observable<Invite>
 }
