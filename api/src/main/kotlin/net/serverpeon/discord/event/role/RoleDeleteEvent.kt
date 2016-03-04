@@ -5,7 +5,7 @@ import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.Role
 
 /**
- *
+ * Fired when [deletedRole] is deleted from the specified [guild].
  */
 interface RoleDeleteEvent : Event {
     val deletedRole: Role
