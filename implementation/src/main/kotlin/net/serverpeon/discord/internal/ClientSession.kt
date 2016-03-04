@@ -82,9 +82,9 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
     private val sessionLock: Lock = ReentrantLock()
 
-    private val model = BehaviorRelay.create<DiscordNode>().apply {
+    private val model = BehaviorRelay.create<DiscordNode>().let { rawModelContainer ->
         // Use a first-only modelSource, needs to be done like this to allow this.call() later
-        val modelSource = this.first()
+        val modelSource = rawModelContainer.first()
 
         // Set up connection to the eventStream for updates to the model
         eventStream.map { it.event }.filter {
@@ -96,7 +96,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                 apiWrapper.map { api ->
                     logger.kDebug { "Rebuilding Discord model" }
                     val newModel = DiscordNode.build(event.data, api)
-                    this.call(newModel) // Update the model
+                    rawModelContainer.call(newModel) // Update the model
                     newModel
                 }
             } else {
@@ -107,7 +107,9 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                 model.handle(event as net.serverpeon.discord.internal.ws.data.inbound.Event)
             }
         }.subscribe()
-    }.first()
+
+        modelSource
+    }
 
     init {
         // We consider receiving the Ready event an indicator that the connection was successful
