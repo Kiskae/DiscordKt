@@ -30,12 +30,12 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
         return root.api.Channels.deleteChannel(WrappedId(id)).toFuture()
     }
 
-    override fun messageHistory(limit: Int): Observable<PostedMessage> {
+    override fun messageHistory(limit: Int, before: DiscordId<PostedMessage>?): Observable<PostedMessage> {
         checkPermission(PermissionSet.Permission.READ_MESSAGE_HISTORY)
         return Observable.concat<List<MessageModel>>(Observable.create { sub ->
             //TODO: some sort of rate limiting mechanism
             var currentLimit = limit
-            var lastMessage: MessageModel? = null
+            var lastMessage: DiscordId<PostedMessage>? = before
             sub.setProducer {
                 if (currentLimit > 0) {
                     //Produce the next call.
@@ -43,12 +43,10 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
                     currentLimit -= requestLimit
                     val obs = root.api.Channels.getMessages(WrappedId(id),
                             limit = requestLimit,
-                            before = lastMessage?.let {
-                                WrappedId(it.id)
-                            }
+                            before = lastMessage?.let { WrappedId(it) }
                     ).rxObservable().publish().apply {
                         // Set lastMessage to last message of list
-                        sub.add(subscribe { lastMessage = it.last() })
+                        sub.add(subscribe { lastMessage = it.last().id })
                     }.refCount()
 
                     sub.onNext(obs)

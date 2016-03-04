@@ -86,7 +86,7 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
         fun permissionsFor(member: Guild.Member): PermissionSet
 
         /**
-         * TODO
+         * Create a new invite which another use can use to join this channel/server.
          *
          * @param expiredAfter Sets the invite to expire after this amount of time has passed. Set to [Duration.ZERO]
          *                     to make the invite never expire.
@@ -199,12 +199,13 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
          * Retrieves the last [limit] messages sent to this channel.
          *
          * @param limit The number of messages to retrieve.
+         * @param before Start the message history at this message.
          * @return A lazy observable that retrieves the messages from the backend, if only a subset of the
          *         returned value is used then it will attempt to limit additional requests.
          * @throws PermissionException if the permission [PermissionSet.Permission.READ_MESSAGE_HISTORY] is missing.
          */
         @Throws(PermissionException::class)
-        fun messageHistory(limit: Int): Observable<PostedMessage>
+        fun messageHistory(limit: Int, before: DiscordId<PostedMessage>? = null): Observable<PostedMessage>
 
         /**
          * Subscribing to the returned completable will send a 'typing' state to discord.
