@@ -14,6 +14,7 @@ import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.EventWrapper
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
+import net.serverpeon.discord.internal.ws.data.outbound.UpdateStatusMsg
 import net.serverpeon.discord.model.*
 import rx.Completable
 import rx.Observable
@@ -29,7 +30,7 @@ import javax.websocket.Session
 import kotlin.concurrent.withLock
 
 class ClientSession(apiSource: Single<ApiWrapper>,
-                    gson: Gson,
+                    private val gson: Gson,
                     private val eventBus: EventBus,
                     metadata: DiscordClient.Builder.UserMetadata,
                     private val retryHandler: RetryHandler) : DiscordClient(), ClientModel {
@@ -195,7 +196,15 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     }
 
     override fun setStatus(game: String?, idle: Boolean): CompletableFuture<Void> {
-        throw UnsupportedOperationException("Not yet implemented")
+        return sessionWrapper.map {
+            val msg = UpdateStatusMsg(game?.let {
+                UpdateStatusMsg.Game(it)
+            }, if (idle) System.currentTimeMillis() else null)
+
+            it.send(gson.toJson(msg.toPayload()))
+        }.toFuture().thenCompose {
+            it
+        }
     }
 
     override fun eventBus(): EventBus {
