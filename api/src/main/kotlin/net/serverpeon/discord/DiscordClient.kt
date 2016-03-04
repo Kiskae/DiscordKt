@@ -14,14 +14,14 @@ import java.util.concurrent.CompletableFuture
  * This means that if the user wants to capture all events they should register their listeners to [eventBus] BEFORE
  * taking any of the actions mentioned above.
  */
-interface DiscordClient : AutoCloseable, ClientModel {
+abstract class DiscordClient : AutoCloseable, ClientModel {
     /**
      * Set the game and idle state of the client's user.
      *
      * @param game String representing the 'game' being played.
      * @param idle Whether the user should be marked as idle.
      */
-    fun setStatus(game: String?, idle: Boolean = false): CompletableFuture<Void>
+    abstract fun setStatus(game: String?, idle: Boolean = false): CompletableFuture<Void>
 
     /**
      * Signal that the client should connect to Discord and begin emitting events to the [eventBus].
@@ -32,19 +32,19 @@ interface DiscordClient : AutoCloseable, ClientModel {
      * If the user wants to receive events then this method needs to be called after registering their listeners but
      * before accessing any of the information.
      */
-    fun startEmittingEvents()
+    abstract fun startEmittingEvents()
 
     /**
      * Invalidates the internal session token and shuts down this client.
      *
      * After completion this client cannot be used to access Discord.
      */
-    fun logout(): Completable
+    abstract fun logout(): Completable
 
     /**
      * Like [close], but does not block the current thread.
      */
-    fun closeAsync(): Completable
+    abstract fun closeAsync(): Completable
 
     /**
      * Returns a completable that will resolve when the client eventually shuts down.
@@ -52,12 +52,12 @@ interface DiscordClient : AutoCloseable, ClientModel {
      *
      * Modelled after Netty's closeFuture() feature: [Channel#closeFuture()](http://netty.io/4.0/api/io/netty/channel/Channel.html#closeFuture())
      */
-    fun closeFuture(): Completable
+    abstract fun closeFuture(): Completable
 
     /**
      * Returns the event bus on which this client will publish events.
      */
-    fun eventBus(): EventBus
+    abstract fun eventBus(): EventBus
 
     /**
      * Exception thrown if data is requested from the client after failure or shutdown.
@@ -142,6 +142,7 @@ interface DiscordClient : AutoCloseable, ClientModel {
     companion object {
         private val builderProviderLoader = ServiceLoader.load(BuilderProvider::class.java)
 
+        @JvmStatic
         fun newBuilder(): DiscordClient.Builder {
             return builderProviderLoader.firstOrNull()?.newBuilder()
                     ?: throw IllegalStateException("DiscordClient implementation not found")

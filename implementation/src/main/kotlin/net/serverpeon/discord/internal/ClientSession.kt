@@ -32,7 +32,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                     gson: Gson,
                     private val eventBus: EventBus,
                     metadata: DiscordClient.Builder.UserMetadata,
-                    private val retryHandler: RetryHandler) : DiscordClient, ClientModel {
+                    private val retryHandler: RetryHandler) : DiscordClient(), ClientModel {
     companion object {
         private val logger = createLogger()
         private const val DISCORD_API_VERSION = 3
