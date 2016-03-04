@@ -20,7 +20,7 @@ data class MessageModel(val nonce: String?,
                         val channel_id: DiscordId<Channel>,
                         val mentions: List<UserModel>) {
     data class Attachment(val width: Int?,
-                          val url: URI,
+                          val url: String,
                           val size: Int,
                           val proxy_url: URI,
                           override val id: DiscordId<Attachment>,
@@ -32,7 +32,7 @@ data class MessageModel(val nonce: String?,
      * @property author Provided if type == ARTICLE
      */
     data class OEmbed(val type: Type,
-                      val url: URI,
+                      val url: String,
                       val title: String?,
                       val thumbnail: Thumbnail?,
                       val provider: Provider?,
@@ -48,9 +48,9 @@ data class MessageModel(val nonce: String?,
             ARTICLE,
         }
 
-        data class Thumbnail(val width: Int, val url: URI, val proxy_url: URI, val height: Int)
-        data class Provider(val name: String, val url: URI?)
-        data class Video(val width: Int, val url: URI, val height: Int)
-        data class Article(val name: String, val url: URI?)
+        data class Thumbnail(val width: Int, val url: String, val proxy_url: URI, val height: Int)
+        data class Provider(val name: String, val url: String?)
+        data class Video(val width: Int, val url: String, val height: Int)
+        data class Article(val name: String, val url: String?)
     }
 }
