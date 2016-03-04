@@ -83,6 +83,9 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     private val sessionLock: Lock = ReentrantLock()
 
     private val model = BehaviorRelay.create<DiscordNode>().apply {
+        // Use a first-only modelSource, needs to be done like this to allow this.call() later
+        val modelSource = this.first()
+
         // Set up connection to the eventStream for updates to the model
         eventStream.map { it.event }.filter {
             // Only pass events through to the model
@@ -98,7 +101,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                 }
             } else {
                 // Otherwise we use the current version of the model
-                this
+                modelSource
             }.map { model ->
                 // Pass the event to the model
                 model.handle(event as net.serverpeon.discord.internal.ws.data.inbound.Event)
@@ -192,6 +195,12 @@ class ClientSession(apiSource: Single<ApiWrapper>,
             it
         }.map {
             RegionNode.create(it)
+        }
+    }
+
+    override fun getInvite(code_or_url: String): Observable<Invite> {
+        return ensureSafeModelAccess().flatMap {
+            it.getInvite(code_or_url)
         }
     }
 

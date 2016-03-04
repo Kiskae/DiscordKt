@@ -1,10 +1,7 @@
 package net.serverpeon.discord.internal.ws.client
 
 import com.google.gson.Gson
-import net.serverpeon.discord.internal.createLogger
-import net.serverpeon.discord.internal.kDebug
-import net.serverpeon.discord.internal.kTrace
-import net.serverpeon.discord.internal.toObservable
+import net.serverpeon.discord.internal.*
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.outbound.KeepaliveMsg
@@ -15,6 +12,7 @@ import rx.schedulers.Schedulers
 import rx.subjects.BehaviorSubject
 import java.net.URI
 import java.util.concurrent.TimeUnit
+import javax.websocket.Session
 
 object DiscordWebsocket {
     private val client: ClientManager by lazy { ClientManager.createClient() }
@@ -32,9 +30,14 @@ object DiscordWebsocket {
             }.connectTo(sub)
 
             // ReadyEvent is the second event
-            connectableRx.skip(1).first().flatMap {
+            connectableRx.skip(1).first().map {
                 check(it.event is Misc.Ready)
-                initKeepAlive(it, gson)
+
+                KeepAliveSpec((it.event as Misc.Ready).data.heartbeat_interval, it.accessSession())
+            }.doOnNext {
+                // Create KeepAlive thread separately from parent observable
+                //  should hopefully sever the root of Misc.Ready
+                initKeepAlive(it, gson).connectTo(sub)
             }.connectTo(sub)
 
             sub.add(connectableRx.subscribe(sub)) // Event passthrough to upper subscriber
@@ -52,11 +55,12 @@ object DiscordWebsocket {
         }
     }
 
-    private fun initKeepAlive(e: EventWrapper, gson: Gson): Observable<Void> {
-        val timeout = (e.event as Misc.Ready).data.heartbeat_interval
-        logger.kTrace { "Sending keep alive every ${timeout}ms" }
-        return Observable.interval(timeout, TimeUnit.MILLISECONDS).flatMap {
-            e.respond(gson.toJson(KeepaliveMsg.toPayload())).toObservable()
+    data class KeepAliveSpec(val timeout: Long, val session: Session)
+
+    private fun initKeepAlive(e: KeepAliveSpec, gson: Gson): Observable<Void> {
+        logger.kTrace { "Sending keep alive every ${e.timeout}ms" }
+        return Observable.interval(e.timeout, TimeUnit.MILLISECONDS).flatMap {
+            e.session.send(gson.toJson(KeepaliveMsg.toPayload())).toObservable()
         }
     }
 
