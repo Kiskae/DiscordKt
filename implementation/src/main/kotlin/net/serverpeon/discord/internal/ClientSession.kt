@@ -80,15 +80,6 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     private val eventStreamSubscription: DoOnce<Subscription> = DoOnce {
         eventStream.connect()
     }
-    private val eventListener: DoOnce<EventPublisher> = DoOnce {
-        EventPublisher(eventBus).apply {
-            eventStream.flatMap { event ->
-                model.map { model ->
-                    this.call(event, model)
-                }
-            }.subscribe()
-        }
-    }
     private val sessionLock: Lock = ReentrantLock()
 
     private val model = BehaviorRelay.create<DiscordNode>().apply {
@@ -137,6 +128,15 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         eventStream.first().subscribe { event -> sessionWrapper.onNext(event.accessSession()) }
         // Close session container on completion
         eventStream.doOnTerminate { sessionWrapper.onCompleted() }.subscribe()
+
+        // Connect EventBus to the event stream
+        EventPublisher(eventBus).apply {
+            eventStream.flatMap { event ->
+                model.map { model ->
+                    this.call(event, model)
+                }
+            }.subscribe()
+        }
     }
 
     override fun guilds(): Observable<Guild> {
@@ -214,7 +214,6 @@ class ClientSession(apiSource: Single<ApiWrapper>,
     override fun startEmittingEvents() {
         sessionLock.withLock {
             if (!closeFuture.isDone) {
-                eventListener.getOrInit()
                 // Activate the event stream
                 eventStreamSubscription.getOrInit()
             }
