@@ -1,6 +1,7 @@
 package net.serverpeon.discord.internal.rest.retro
 
 import net.serverpeon.discord.internal.jsonmodels.ChannelModel
+import net.serverpeon.discord.internal.jsonmodels.InviteModel
 import net.serverpeon.discord.internal.jsonmodels.MessageModel
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.model.*
@@ -74,6 +75,13 @@ interface Channels {
                               @Path("target_id") targetId: WrappedId<Role>): Call<Void>
 
     @GET("channels/{channel_id}/invites")
-    @Deprecated("Unfinished")
-    fun getChannelInvites(@Path("channel_id") id: WrappedId<Channel>): Call<Any>
+    fun getChannelInvites(@Path("channel_id") id: WrappedId<Channel>): Call<List<InviteModel.Rich>>
+
+    @POST("channels/{channel_id}/invites")
+    fun createInvite(@Path("channel_id") id: WrappedId<Channel>, @Body data: InviteSpec): Call<InviteModel.Rich>
+
+    data class InviteSpec(val max_age: Int,
+                          val max_uses: Int,
+                          val temporary: Boolean,
+                          val xkcdpass: Boolean)
 }

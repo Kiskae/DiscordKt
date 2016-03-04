@@ -16,6 +16,7 @@ import net.serverpeon.discord.message.Message
 import net.serverpeon.discord.model.*
 import rx.Completable
 import rx.Observable
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
@@ -136,6 +137,14 @@ abstract class ChannelNode<T : ChannelNode<T>> private constructor(val root: Dis
 
         override fun permissionsFor(member: Guild.Member): PermissionSet {
             return resolveMemberPerms(member, true)
+        }
+
+        override fun createInvite(expiredAfter: Duration,
+                                  maxUses: Int,
+                                  temporaryMembership: Boolean,
+                                  xkcd: Boolean
+        ): CompletableFuture<Invite.Details> {
+            throw UnsupportedOperationException()
         }
 
         override val isPrivate: Boolean

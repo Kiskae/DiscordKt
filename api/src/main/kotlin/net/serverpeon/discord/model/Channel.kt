@@ -6,6 +6,7 @@ import net.serverpeon.discord.interaction.PermissionException
 import net.serverpeon.discord.message.Message
 import rx.Completable
 import rx.Observable
+import java.time.Duration
 import java.util.concurrent.CompletableFuture
 
 /**
@@ -68,6 +69,8 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
          *
          * Accessing permissions through this method instead of [roleOverrides] is more efficient for
          * single role queries.
+         *
+         * @param role Role to query for permissions with overrides
          */
         fun permissionsFor(role: Role): PermissionSet
 
@@ -77,8 +80,23 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
          *
          * Accessing permissions through this method instead of [memberOverrides] is more efficient for
          * single member queries.
+         *
+         * @param member Member to query for permissions with overrides
          */
         fun permissionsFor(member: Guild.Member): PermissionSet
+
+        /**
+         * TODO
+         *
+         * @param expiredAfter
+         * @param maxUses
+         * @param temporaryMembership
+         * @param xkcd
+         */
+        fun createInvite(expiredAfter: Duration = Duration.ZERO,
+                         maxUses: Int = 0,
+                         temporaryMembership: Boolean = false,
+                         xkcd: Boolean = false): CompletableFuture<Invite.Details>
 
         /**
          * Customizes the permissions for the given member.

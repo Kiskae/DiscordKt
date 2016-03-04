@@ -1,9 +1,6 @@
 package net.serverpeon.discord.internal.rest.retro
 
-import net.serverpeon.discord.internal.jsonmodels.ChannelModel
-import net.serverpeon.discord.internal.jsonmodels.GuildModel
-import net.serverpeon.discord.internal.jsonmodels.RoleModel
-import net.serverpeon.discord.internal.jsonmodels.UserModel
+import net.serverpeon.discord.internal.jsonmodels.*
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.model.*
 import retrofit2.Call
@@ -85,8 +82,7 @@ interface Guilds {
                    @Path("role_id") roleId: WrappedId<Role>): Call<Void>
 
     @GET("guilds/{guild_id}/invites")
-    @Deprecated("Unfinished")
-    fun getGuildInvites(@Path("guild_id") id: WrappedId<Guild>): Call<List<Any>> //TODO: replace with RichInvite
+    fun getGuildInvites(@Path("guild_id") id: WrappedId<Guild>): Call<List<InviteModel.Rich>>
 
     @POST("guilds/{guild_id}/channels")
     fun createChannel(@Path("guild_id") id: WrappedId<Guild>,

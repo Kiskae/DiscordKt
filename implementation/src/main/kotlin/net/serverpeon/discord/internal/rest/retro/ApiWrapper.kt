@@ -42,6 +42,7 @@ class ApiWrapper(private val client: OkHttpClient,
     val Status: Status by create { statusRetrofit }
     val Gateway: WsGateway by create { authenticatedRetrofit }
     val Voice: Voice by create { authenticatedRetrofit }
+    val Invites: Invites by create { authenticatedRetrofit }
 
     interface WsGateway {
         @GET("gateway")
