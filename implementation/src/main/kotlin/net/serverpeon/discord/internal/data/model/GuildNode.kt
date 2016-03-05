@@ -158,7 +158,7 @@ class GuildNode internal constructor(val root: DiscordNode,
     }
 
     fun wireToUser(id: DiscordId<User>, event: Event) {
-        memberMap[id]?.handle(event)
+        memberMap[id]!!.handle(event)
     }
 
     override fun wireToChannel(id: DiscordId<Channel>, event: Event) {
@@ -197,8 +197,14 @@ class GuildNode internal constructor(val root: DiscordNode,
             target.memberMap += Builder.member(e.member, null, null, target)
         }
 
-        override fun guildMemberUpdate(target: GuildNode, e: Guilds.Members.Update)
-                = target.wireToUser(e.member.user.id, e)
+        override fun guildMemberUpdate(target: GuildNode, e: Guilds.Members.Update) {
+            // FIXME: members just seem to suddenly appear?
+            if (e.member.user.id !in target.memberMap) {
+                target.memberMap += Builder.member(e.member, null, null, target)
+            }
+
+            target.wireToUser(e.member.user.id, e)
+        }
 
         override fun guildMemberRemove(target: GuildNode, e: Guilds.Members.Remove) {
             // FIXME: member might not exist when the REMOVE event happens
