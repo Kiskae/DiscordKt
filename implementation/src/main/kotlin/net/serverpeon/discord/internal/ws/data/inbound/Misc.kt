@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName
 import net.serverpeon.discord.internal.data.EventInput
 import net.serverpeon.discord.internal.jsonmodels.ReadyEventModel
 import net.serverpeon.discord.internal.jsonmodels.SelfModel
+import net.serverpeon.discord.internal.jsonmodels.UserModel
 import net.serverpeon.discord.internal.jsonmodels.VoiceStateModel
 import net.serverpeon.discord.model.*
 
@@ -41,7 +42,13 @@ interface Misc : Event {
         data class UserRef(val id: DiscordId<User>,
                            val username: String?,
                            val discriminator: String?,
-                           val avatar: DiscordId<User.Avatar>?)
+                           val avatar: DiscordId<User.Avatar>?) {
+            fun toUserModel(): UserModel {
+                require(username != null)
+                require(discriminator != null)
+                return UserModel(username!!, id, discriminator!!, avatar)
+            }
+        }
 
         data class Playing(val name: String)
 

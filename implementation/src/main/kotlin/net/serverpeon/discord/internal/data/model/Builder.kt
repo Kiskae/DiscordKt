@@ -5,10 +5,12 @@ import net.serverpeon.discord.internal.data.combineMaps
 import net.serverpeon.discord.internal.data.toImmutableIdMap
 import net.serverpeon.discord.internal.jsonmodels.*
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
+import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.model.Channel
 import net.serverpeon.discord.model.DiscordId
 import net.serverpeon.discord.model.Guild
 import net.serverpeon.discord.model.Invite
+import java.time.ZonedDateTime
 
 internal object Builder {
     fun root(data: ReadyEventModel, api: ApiWrapper): DiscordNode {
@@ -95,15 +97,30 @@ internal object Builder {
                guildNode: GuildNode): MemberNode {
         return MemberNode(
                 guildNode,
-                guildNode.root.userCache.retrieve(model.user.id, model.user),
-                MemberNode.Companion.generateRoleList(model.roles, guildNode.roleMap),
+                guildNode.root.userCache.retrieve(model.user),
+                MemberNode.generateRoleList(model.roles, guildNode.roleMap),
                 model.joined_at,
-                presence?.status?.let { MemberNode.Companion.mapStatus(it) } ?: Guild.Member.Status.OFFLINE,
+                presence?.status?.let { MemberNode.mapStatus(it) } ?: Guild.Member.Status.OFFLINE,
                 presence?.game?.name,
                 voiceState?.deaf ?: false,
                 voiceState?.mute ?: false,
                 voiceState?.self_deaf ?: false,
                 voiceState?.self_mute ?: false
+        )
+    }
+
+    fun member(model: Misc.PresenceUpdate, guildNode: GuildNode): MemberNode {
+        return MemberNode(
+                guildNode,
+                guildNode.root.userCache.retrieve(model.user.toUserModel()),
+                MemberNode.generateRoleList(model.roles, guildNode.roleMap),
+                ZonedDateTime.now(),
+                MemberNode.mapStatus(model.status),
+                model.game?.name,
+                false,
+                false,
+                false,
+                false
         )
     }
 
@@ -121,7 +138,8 @@ internal object Builder {
     }
 
     fun role(model: RoleModel, guild: GuildNode): RoleNode {
-        return RoleNode(guild.root,
+        return RoleNode(
+                guild.root,
                 guild,
                 model.id,
                 model.name,
@@ -129,7 +147,8 @@ internal object Builder {
                 model.hoist,
                 model.permissions,
                 model.color,
-                model.position);
+                model.position
+        );
     }
 
     fun user(data: UserModel, node: DiscordNode): UserNode {
@@ -155,7 +174,8 @@ internal object Builder {
     }
 
     fun invite(invite: InviteModel.Basic, root: DiscordNode): InviteNode {
-        return InviteNode(root,
+        return InviteNode(
+                root,
                 invite.guild.let {
                     Invite.GuildSpec(it.id, it.name)
                 },
@@ -163,7 +183,8 @@ internal object Builder {
                     Invite.ChannelSpec(it.id, it.name, if (it.type == ChannelModel.Type.TEXT) Channel.Type.TEXT else Channel.Type.VOICE)
                 },
                 invite.xkcdpass?.let { DiscordId<Invite>(it) },
-                invite.code);
+                invite.code
+        );
     }
 
     fun invite(invite: InviteModel.Rich, root: DiscordNode): InviteNode.Rich {
@@ -173,7 +194,8 @@ internal object Builder {
             null
         }
 
-        return InviteNode.Rich(root,
+        return InviteNode.Rich(
+                root,
                 invite.guild.let {
                     Invite.GuildSpec(it.id, it.name)
                 },
@@ -188,6 +210,7 @@ internal object Builder {
                 invite.created_at,
                 invite.uses,
                 invite.max_uses,
-                expiresAt);
+                expiresAt
+        );
     }
 }

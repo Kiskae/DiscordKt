@@ -1,81 +1,108 @@
 package net.serverpeon.discord.internal.ws.client
 
 import com.google.gson.Gson
-import net.serverpeon.discord.internal.*
+import net.serverpeon.discord.internal.createLogger
+import net.serverpeon.discord.internal.kDebug
+import net.serverpeon.discord.internal.send
+import net.serverpeon.discord.internal.toObservable
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.outbound.KeepaliveMsg
-import org.glassfish.tyrus.client.ClientManager
+import net.serverpeon.discord.internal.ws.data.outbound.ReconnectMsg
 import rx.Observable
-import rx.Subscriber
-import rx.schedulers.Schedulers
-import rx.subjects.BehaviorSubject
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.websocket.Session
 
 object DiscordWebsocket {
-    private val client: ClientManager by lazy { ClientManager.createClient() }
     private val logger = createLogger()
 
     fun create(connectMsg: ConnectMsg, socketUrl: URI, gson: Gson): Observable<EventWrapper> {
-        return Observable.create<EventWrapper> { sub ->
-            val connectableRx = openWebsocketStream(BehaviorSubject.create(socketUrl), gson).publish()
+        return startEventStream(connectMsg, socketUrl, DiscordHandlers.create(gson), gson)
+    }
+
+    private fun startEventStream(
+            connectMsg: ConnectMsg,
+            socketUrl: URI,
+            translator: MessageTranslator,
+            gson: Gson
+    ): Observable<EventWrapper> {
+        return Observable.create { sub ->
+            val eventSource = DiscordEndpoint.create(translator, socketUrl).publish()
+
+            // Pass events and any errors from eventSource directly to parent
+            eventSource.subscribe(sub)
 
             // StartEvent is the first event
-            connectableRx.first().flatMap { startEvent ->
+            eventSource.first().flatMap { startEvent ->
                 check(startEvent.event === DiscordEndpoint.StartEvent)
 
-                startEvent.respond(gson.toJson(connectMsg.toPayload())).toObservable()
-            }.connectTo(sub)
+                startEvent.session.send(gson.toJson(connectMsg.toPayload())).toObservable()
+            }.doOnError { sub.onError(it) }.subscribe()
 
             // ReadyEvent is the second event
-            connectableRx.skip(1).first().map {
-                check(it.event is Misc.Ready)
+            eventSource.skip(1).first().doOnNext {
+                val ready = it.event as Misc.Ready
 
-                KeepAliveSpec((it.event as Misc.Ready).data.heartbeat_interval, it.accessSession())
-            }.doOnNext {
+                ready.data.guilds.forEach { guild ->
+                    logger.kDebug { "Member_count: ${guild.member_count}, Members_reported: ${guild.members.size}" }
+                }
+
                 // Create KeepAlive thread separately from parent observable
                 //  should hopefully sever the root of Misc.Ready
-                initKeepAlive(it, gson).connectTo(sub)
-            }.connectTo(sub)
+                val keepAliveObservable = keepAlive(ready.data.heartbeat_interval, it.session, gson)
 
-            sub.add(connectableRx.subscribe(sub)) // Event passthrough to upper subscriber
+                // If keep-alive errors pass to parent, also unsubscribe when parent does.
+                sub.add(keepAliveObservable.doOnError {
+                    sub.onError(it)
+                }.subscribe())
+            }.subscribe()
 
-            //DEBUG
-            connectableRx.doOnTerminate {
-                logger.kDebug { "Connection terminated" }
-            }.connectTo(sub)
-
-            // Finally begin emitting from the base observable
-            connectableRx.connect { subscription ->
-                logger.kDebug { "Event stream initialized" }
+            eventSource.connect { subscription ->
+                logger.kDebug { "Initial event stream established" }
                 sub.add(subscription)
             }
         }
     }
 
-    data class KeepAliveSpec(val timeout: Long, val session: Session)
+    private fun reconnectEventStream(
+            sessionId: String,
+            sequenceNumber: Int,
+            socketUrl: URI,
+            translator: MessageTranslator,
+            gson: Gson
+    ): Observable<EventWrapper> {
+        return Observable.create { sub ->
+            val eventSource = DiscordEndpoint.create(translator, socketUrl).publish()
 
-    private fun initKeepAlive(e: KeepAliveSpec, gson: Gson): Observable<Void> {
-        logger.kTrace { "Sending keep alive every ${e.timeout}ms" }
-        return Observable.interval(e.timeout, TimeUnit.MILLISECONDS).flatMap {
-            e.session.send(gson.toJson(KeepaliveMsg.toPayload())).toObservable()
+            // Pass events and any errors from eventSource directly to parent
+            eventSource.subscribe(sub)
+
+            // Send the reconnect payload
+            eventSource.first().flatMap { startEvent ->
+                check(startEvent.event === DiscordEndpoint.StartEvent)
+
+                startEvent.session.send(gson.toJson(ReconnectMsg(
+                        sessionId,
+                        sequenceNumber
+                ).toPayload())).toObservable()
+            }.doOnError { sub.onError(it) }.subscribe()
+
+            // TODO: check for 'resumed' event & re-init keepalive
+
+            eventSource.connect { subscription ->
+                logger.kDebug { "Resume event stream established" }
+                sub.add(subscription)
+            }
         }
     }
 
-    private fun <T> Observable<T>.connectTo(sub: Subscriber<*>) {
-        sub.add(this.doOnError { sub.onError(it) }.subscribe())
-    }
-
-    private fun openWebsocketStream(urlObservable: BehaviorSubject<URI>, gson: Gson): Observable<EventWrapper> {
-        return Observable.create { sub ->
-            val endpoint = DiscordEndpoint(DiscordHandlers.create(gson), sub)
-            urlObservable.map { socketUrl ->
-                client.asyncConnectToServer(endpoint, socketUrl)
-            }.flatMap { openFuture ->
-                Observable.from(openFuture).subscribeOn(Schedulers.newThread())
-            }.connectTo(sub)
+    private fun keepAlive(timeout: Long,
+                          session: Session,
+                          gson: Gson): Observable<Void> {
+        logger.kDebug { "Sending keep alive every ${timeout}ms" }
+        return Observable.interval(timeout, TimeUnit.MILLISECONDS).flatMap {
+            session.send(gson.toJson(KeepaliveMsg.toPayload())).toObservable()
         }
     }
 }

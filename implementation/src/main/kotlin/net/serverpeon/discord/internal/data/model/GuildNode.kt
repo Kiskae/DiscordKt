@@ -198,11 +198,6 @@ class GuildNode internal constructor(val root: DiscordNode,
         }
 
         override fun guildMemberUpdate(target: GuildNode, e: Guilds.Members.Update) {
-            // FIXME: members just seem to suddenly appear?
-            if (e.member.user.id !in target.memberMap) {
-                target.memberMap += Builder.member(e.member, null, null, target)
-            }
-
             target.wireToUser(e.member.user.id, e)
         }
 
@@ -248,7 +243,14 @@ class GuildNode internal constructor(val root: DiscordNode,
             // Only a notification, ignored for now
         }
 
-        override fun presenceUpdate(target: GuildNode, e: Misc.PresenceUpdate) = target.wireToUser(e.user.id, e)
+        override fun presenceUpdate(target: GuildNode, e: Misc.PresenceUpdate) {
+            // If the user is unknown, then the presence-update is used to insert their data
+            if (e.user.id !in target.memberMap) {
+                target.memberMap += Builder.member(e, target)
+            } else {
+                target.wireToUser(e.user.id, e)
+            }
+        }
 
         override fun voiceStateUpdate(target: GuildNode, e: Misc.VoiceStateUpdate)
                 = target.wireToUser(e.update.user_id, e)

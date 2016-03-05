@@ -36,15 +36,27 @@ internal class MessageTranslator private constructor(private val dsl: DSL,
         val event = dsl.gson.fromJson(input, PayloadIn::class.java)
 
         logger.kTrace {
-            "[${event.t}] ${dsl.gson.toJson(event.d)}"
+            "[${event.t},${event.op},${event.s}] ${dsl.gson.toJson(event.d)}"
         }
 
-        val handler = handlers[event.t]
-        return if (handler != null) {
-            dsl.handler(event.d)
-        } else {
-            logger.kWarn { "Unhandled event: ${event.t} [${dsl.gson.toJson(event.d)}" }
-            null
+        return when (event.op) {
+            0 -> {
+                // Default event handler
+                val handler = handlers[event.t]
+                if (handler != null) {
+                    dsl.handler(event.d)
+                } else {
+                    logger.kWarn { "Unhandled event: ${event.t} [${dsl.gson.toJson(event.d)}" }
+                    null
+                }
+            }
+            7 -> {
+                // This should be correctly handled upstream
+                dsl.gson.fromJson(event.d, ReconnectCommand::class.java)
+            }
+            else -> {
+                logger.kWarn { "Unknown op: $event" }
+            }
         }
     }
 }

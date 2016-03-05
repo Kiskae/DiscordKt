@@ -67,10 +67,12 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                     ),
                     endPoint.url,
                     gson
-            ).retry(retryHandler).onErrorResumeNext {
-                // This will ensure the original exception is thrown if retries fail
-                Observable.error(retryHandler.originalException)
-            }
+            )
+            //FIXME: disable retries for now
+            /*.retry(retryHandler).onErrorResumeNext {
+        // This will ensure the original exception is thrown if retries fail
+        Observable.error(retryHandler.originalException)
+    }*/
         }
     }.publish()
     private val sessionWrapper: BehaviorSubject<Session> = BehaviorSubject.create()
@@ -130,7 +132,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
         apiWrapper.doOnError { closeFuture.completeExceptionally(it) }.subscribe()
 
         // Set up session capture
-        eventStream.first().subscribe { event -> sessionWrapper.onNext(event.accessSession()) }
+        eventStream.first().subscribe { event -> sessionWrapper.onNext(event.session) }
         // Close session container on completion
         eventStream.doOnTerminate { sessionWrapper.onCompleted() }.subscribe()
 

@@ -34,7 +34,7 @@ open class InviteNode internal constructor(val root: DiscordNode,
     }
 
     override fun toString(): String {
-        return "Invite(id=$id, channel=$channel, guild=$guild)"
+        return "Invite(id=${humanReadableId ?: id}, channel=$channel, guild=$guild)"
     }
 
     class Rich internal constructor(root: DiscordNode,
