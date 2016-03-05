@@ -45,6 +45,8 @@ interface EventInput<T : EventInput<T>> {
         fun userUpdate(target: T, e: Misc.UserUpdate) = noop()
 
         fun ready(target: T, e: Misc.Ready) = noop()
+        fun resumed(target: T, e: Misc.Resumed) = noop()
+        fun guildMemberChunks(target: T, e: Misc.MembersChunk) = target.wireToGuild(e.guild_id, e)
 
         fun typingStart(target: T, e: Misc.TypingStart) = target.wireToChannel(e.channel_id, e)
         fun presenceUpdate(target: T, e: Misc.PresenceUpdate) = target.wireToGuild(e.guild_id, e)

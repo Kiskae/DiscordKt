@@ -9,6 +9,6 @@ import com.google.gson.JsonElement
  * @property d Payload, specific for each event
  */
 data class PayloadIn(val t: String,
-                     val s: Int,
+                     val s: Int?,
                      val op: Int,
                      val d: JsonElement)

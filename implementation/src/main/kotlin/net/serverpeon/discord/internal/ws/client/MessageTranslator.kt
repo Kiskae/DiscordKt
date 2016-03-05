@@ -39,6 +39,8 @@ internal class MessageTranslator private constructor(private val dsl: DSL,
             "[${event.t},${event.op},${event.s}] ${dsl.gson.toJson(event.d)}"
         }
 
+        //TODO: store latest sequence number
+
         return when (event.op) {
             0 -> {
                 // Default event handler
@@ -46,7 +48,7 @@ internal class MessageTranslator private constructor(private val dsl: DSL,
                 if (handler != null) {
                     dsl.handler(event.d)
                 } else {
-                    logger.kWarn { "Unhandled event: ${event.t} [${dsl.gson.toJson(event.d)}" }
+                    logger.kWarn { "Unhandled event: [${event.t}] ${dsl.gson.toJson(event.d)}" }
                     null
                 }
             }

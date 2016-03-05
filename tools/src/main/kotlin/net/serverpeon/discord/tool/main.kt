@@ -11,7 +11,13 @@ fun main(args: Array<String>) {
     val result = Files.readLines(File(args[0]), Charset.defaultCharset(), FileReader {
         val matcher = pattern.matcher(it)
         if (matcher.matches()) {
-            FileReader.TaggedField(matcher.group(1), matcher.group(2))
+            FileReader.TaggedField(matcher.group(1).split(',', limit = 2)[0], matcher.group(2)).let {
+                if (it.tag != "SEND") {
+                    it
+                } else {
+                    null
+                }
+            }
         } else {
             null
         }

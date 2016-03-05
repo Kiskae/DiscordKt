@@ -62,7 +62,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                                     referrer = "",
                                     referrerDomain = ""
                             ),
-                            large_threshold = 100,
+                            large_threshold = 250,
                             compress = true
                     ),
                     endPoint.url,

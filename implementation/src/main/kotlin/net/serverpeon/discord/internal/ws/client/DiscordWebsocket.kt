@@ -9,7 +9,9 @@ import net.serverpeon.discord.internal.ws.data.inbound.Misc
 import net.serverpeon.discord.internal.ws.data.outbound.ConnectMsg
 import net.serverpeon.discord.internal.ws.data.outbound.KeepaliveMsg
 import net.serverpeon.discord.internal.ws.data.outbound.ReconnectMsg
+import net.serverpeon.discord.internal.ws.data.outbound.RequestMembersMsg
 import rx.Observable
+import rx.Subscriber
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.websocket.Session
@@ -44,18 +46,19 @@ object DiscordWebsocket {
             eventSource.skip(1).first().doOnNext {
                 val ready = it.event as Misc.Ready
 
-                ready.data.guilds.forEach { guild ->
-                    logger.kDebug { "Member_count: ${guild.member_count}, Members_reported: ${guild.members.size}" }
+                initKeepAlive(ready.data.heartbeat_interval, it.session, gson, sub)
+
+                // If we're part of any 'large' guilds, then request the full member list
+                val largeGuilds = ready.data.guilds.filter { it.large }
+                if (largeGuilds.isNotEmpty()) {
+                    val requestMembersObservable = it.session.send(gson.toJson(RequestMembersMsg(
+                            largeGuilds.map { it.id }
+                    ).toPayload())).toObservable()
+
+                    sub.add(requestMembersObservable.doOnError {
+                        sub.onError(it)
+                    }.subscribe())
                 }
-
-                // Create KeepAlive thread separately from parent observable
-                //  should hopefully sever the root of Misc.Ready
-                val keepAliveObservable = keepAlive(ready.data.heartbeat_interval, it.session, gson)
-
-                // If keep-alive errors pass to parent, also unsubscribe when parent does.
-                sub.add(keepAliveObservable.doOnError {
-                    sub.onError(it)
-                }.subscribe())
             }.subscribe()
 
             eventSource.connect { subscription ->
@@ -88,7 +91,11 @@ object DiscordWebsocket {
                 ).toPayload())).toObservable()
             }.doOnError { sub.onError(it) }.subscribe()
 
-            // TODO: check for 'resumed' event & re-init keepalive
+            eventSource.skip(1).first().doOnNext {
+                val resumed = it.event as Misc.Resumed
+
+                initKeepAlive(resumed.heartbeat_interval, it.session, gson, sub)
+            }
 
             eventSource.connect { subscription ->
                 logger.kDebug { "Resume event stream established" }
@@ -97,12 +104,21 @@ object DiscordWebsocket {
         }
     }
 
-    private fun keepAlive(timeout: Long,
-                          session: Session,
-                          gson: Gson): Observable<Void> {
+    private fun initKeepAlive(timeout: Long,
+                              session: Session,
+                              gson: Gson,
+                              sub: Subscriber<*>) {
         logger.kDebug { "Sending keep alive every ${timeout}ms" }
-        return Observable.interval(timeout, TimeUnit.MILLISECONDS).flatMap {
+
+        // Create KeepAlive thread separately from parent observable
+        //  should hopefully sever the root of Misc.Ready
+        val keepAlive = Observable.interval(timeout, TimeUnit.MILLISECONDS).flatMap {
             session.send(gson.toJson(KeepaliveMsg.toPayload())).toObservable()
         }
+
+        // If keep-alive errors pass to parent, also unsubscribe when parent does.
+        sub.add(keepAlive.doOnError {
+            sub.onError(it)
+        }.subscribe())
     }
 }

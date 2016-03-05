@@ -46,6 +46,8 @@ internal object DiscordHandlers {
             registerType("GUILD_EMOJIS_UPDATE") { it.parse<Guilds.EmojiUpdate>() }
             registerType("GUILD_INTEGRATIONS_UPDATE") { it.parse<Guilds.IntegrationsUpdate>() }
             registerType("VOICE_STATE_UPDATE") { Misc.VoiceStateUpdate(it.parse()) }
+            registerType("RESUMED") { it.parse<Misc.Resumed>() }
+            registerType("GUILD_MEMBERS_CHUNK") { it.parse<Misc.MembersChunk>() }
         }.build()
     }
 }
