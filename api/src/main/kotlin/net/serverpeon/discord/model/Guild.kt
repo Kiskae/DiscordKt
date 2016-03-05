@@ -121,7 +121,7 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
     fun leave(): CompletableFuture<Void>
 
     /**
-     * TODO
+     * Retrieves all active invites previously created for any channel in this server.
      *
      * @throws PermissionException If the client does not have [PermissionSet.Permission.MANAGE_SERVER] for this
      *                             server.
@@ -164,6 +164,7 @@ interface Guild : DiscordId.Identifiable<Guild>, Editable<Guild, Guild.Edit>, De
 
         /**
          * DateTime when this user first joined the guild.
+         * **WARNING** Might not be accurate for large guilds.
          */
         val joinedAt: ZonedDateTime
 

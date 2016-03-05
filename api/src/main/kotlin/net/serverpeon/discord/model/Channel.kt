@@ -104,7 +104,7 @@ interface Channel : DiscordId.Identifiable<Channel>, Deletable {
                          humanReadableId: Boolean = false): CompletableFuture<Invite.Details>
 
         /**
-         * TODO
+         * Retrieves all active invites previously created for this channel.
          *
          * @throws PermissionException If the client does not have [PermissionSet.Permission.MANAGE_CHANNEL] for this
          *                             channel.

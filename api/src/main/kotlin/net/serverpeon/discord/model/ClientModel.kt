@@ -60,9 +60,14 @@ interface ClientModel {
     fun getAvailableServerRegions(): Observable<Region>
 
     /**
-     * TODO
+     * Attempt to retrieve a channel invite from the given [code_or_url].
      *
-     * @param code_or_url
+     * Accepted forms are:
+     * * "discord.gg" invite URL
+     * * Invite code associated with the invite
+     * * xkcd-based human readable invite code.
+     *
+     * @param code_or_url The string from which to extract the invite.
      */
     fun getInvite(code_or_url: String): Observable<Invite>
 }
