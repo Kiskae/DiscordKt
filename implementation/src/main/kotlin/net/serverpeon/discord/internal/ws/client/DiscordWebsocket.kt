@@ -160,9 +160,11 @@ object DiscordWebsocket {
             it.event is ReconnectCommand
         }.doOnNext { ev ->
             val reconnect = ev.event as ReconnectCommand
+
+            // This closes the previous event-stream as well.
             ev.session.close()
 
-            //Publish replacement stream
+            //Generate and publish new event stream.
             replacementEventStreams.onNext(reconnectEventStream(
                     sessionId,
                     reconnect.sequence!!,
