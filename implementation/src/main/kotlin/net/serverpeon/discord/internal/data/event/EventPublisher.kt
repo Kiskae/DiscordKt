@@ -8,6 +8,7 @@ import net.serverpeon.discord.event.Event
 import net.serverpeon.discord.internal.data.model.DiscordNode
 import net.serverpeon.discord.internal.data.model.MessageNode
 import net.serverpeon.discord.internal.jsonmodels.MessageModel
+import net.serverpeon.discord.internal.ws.client.DiscordWebsocket
 import net.serverpeon.discord.internal.ws.client.EventWrapper
 import net.serverpeon.discord.internal.ws.data.inbound.Channels
 import net.serverpeon.discord.internal.ws.data.inbound.Guilds
@@ -121,6 +122,9 @@ internal class EventPublisher(val eventBus: EventBus) : Action2<EventWrapper, Di
 
         mapSimple<Misc.Ready> { event, model ->
             ModelReady(model)
+        }
+        mapSimple<DiscordWebsocket.MembersReady> { event, model ->
+            MembersLoaded(model)
         }
     }
 

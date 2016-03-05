@@ -1,5 +1,6 @@
 package net.serverpeon.discord.internal.data.event
 
+import net.serverpeon.discord.event.MembersLoadedEvent
 import net.serverpeon.discord.event.ModelReadyEvent
 import net.serverpeon.discord.event.ban.BanCreateEvent
 import net.serverpeon.discord.event.ban.BanRemoveEvent
@@ -52,3 +53,4 @@ data class RoleEdited(override val role: Role, override val guild: Guild) : Role
 data class RoleDeleted(override val deletedRole: Role, override val guild: Guild) : RoleDeleteEvent
 
 data class ModelReady(override val model: ClientModel) : ModelReadyEvent
+data class MembersLoaded(override val model: ClientModel) : MembersLoadedEvent

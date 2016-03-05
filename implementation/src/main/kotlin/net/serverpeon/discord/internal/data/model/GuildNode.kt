@@ -1,5 +1,6 @@
 package net.serverpeon.discord.internal.data.model
 
+import com.google.common.collect.ImmutableMap
 import net.serverpeon.discord.interaction.Editable
 import net.serverpeon.discord.internal.data.*
 import net.serverpeon.discord.internal.jsonmodels.ChannelModel
@@ -158,7 +159,7 @@ class GuildNode internal constructor(val root: DiscordNode,
     }
 
     fun wireToUser(id: DiscordId<User>, event: Event) {
-        memberMap[id]!!.handle(event)
+        memberMap[id]?.handle(event)
     }
 
     override fun wireToChannel(id: DiscordId<Channel>, event: Event) {
@@ -244,12 +245,12 @@ class GuildNode internal constructor(val root: DiscordNode,
         }
 
         override fun presenceUpdate(target: GuildNode, e: Misc.PresenceUpdate) {
-            // If the user is unknown, then the presence-update is used to insert their data
-            if (e.user.id !in target.memberMap) {
-                target.memberMap += Builder.member(e, target)
-            } else {
+            if (e.user.id in target.memberMap) {
                 target.wireToUser(e.user.id, e)
-            }
+            } else if (e.user.username != null) {
+                // If the user is unknown, then the presence-update is used to insert their data
+                target.memberMap += Builder.member(e, target)
+            } // else does happen, but only in race conditions w/ people getting kicked.
         }
 
         override fun voiceStateUpdate(target: GuildNode, e: Misc.VoiceStateUpdate)
@@ -265,6 +266,27 @@ class GuildNode internal constructor(val root: DiscordNode,
             check(e.channel.id in target.channelMap) { "Removing non-existent channel: $e" }
             e.value = target.channelMap[e.channel.id]
             target.channelMap -= e.channel.id
+        }
+
+        override fun guildMemberChunks(target: GuildNode, e: Misc.MembersChunk) {
+            val memberMap = ImmutableMap.builder<DiscordId<User>, MemberNode>().apply {
+                // Import override members
+                e.members.forEach {
+                    put(it.user.id, Builder.member(it, null, null, target))
+                }
+
+                val overriddenMembers = build().keys
+
+                // Copy all members that were not overridden
+                target.memberMap.filterKeys {
+                    it !in overriddenMembers
+                }.forEach {
+                    put(it)
+                }
+            }.build()
+
+            // Replace original memberMap
+            target.memberMap = memberMap
         }
     }
 
