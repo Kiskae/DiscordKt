@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture
 import javax.websocket.Session
 
 private object ConcurrentExt {
-    val logger = createLogger()
+    val logger = loggerFor<ConcurrentExt>()
 }
 
 fun Call<Void>.rx(): Completable {
@@ -116,7 +116,7 @@ fun Session.send(text: String): CompletableFuture<Void> {
     val future = CompletableFuture<Void>()
 
     if (isOpen) {
-        ConcurrentExt.logger.kTrace { "[SEND] $text" }
+        ConcurrentExt.logger.trace { "[SEND] $text" }
         asyncRemote.sendText(text, { result ->
             if (result.isOK) {
                 future.complete(null)

@@ -1,9 +1,8 @@
 package net.serverpeon.discord.internal.data.model
 
-import net.serverpeon.discord.internal.createLogger
 import net.serverpeon.discord.internal.data.*
 import net.serverpeon.discord.internal.jsonmodels.ReadyEventModel
-import net.serverpeon.discord.internal.kDebug
+import net.serverpeon.discord.internal.loggerFor
 import net.serverpeon.discord.internal.rest.WrappedId
 import net.serverpeon.discord.internal.rest.retro.ApiWrapper
 import net.serverpeon.discord.internal.rest.retro.Guilds.CreateGuildRequest
@@ -110,7 +109,7 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
 
             super.channelCreate(target, e)
 
-            logger.kDebug { "Channel created: ${e.channel.id.repr}#${e.channel.name}" }
+            logger.debug { "Channel created: ${e.channel.id.repr}#${e.channel.name}" }
 
             target.guildMap[e.channel.guild_id]?.let {
                 target.channelMap[e.channel.id]
@@ -124,7 +123,7 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
             //check(e.channel.id !in channels)
             if (e.channel.id in target.channelMap) return
 
-            logger.kDebug { "Channel created: ${e.channel.id.repr}#${e.channel.recipient.username}-${e.channel.recipient.discriminator}" }
+            logger.debug { "Channel created: ${e.channel.id.repr}#${e.channel.recipient.username}-${e.channel.recipient.discriminator}" }
 
             target.channelMap += Builder.channel(e.channel, target)
         }
@@ -132,7 +131,7 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
         override fun guildCreate(target: DiscordNode, e: Guilds.General.Create) {
             check(e.guild.id !in target.guildMap) { "Guild created twice? $e" }
 
-            logger.kDebug { "Guild created: ${e.guild.id.repr}#${e.guild.name}" }
+            logger.debug { "Guild created: ${e.guild.id.repr}#${e.guild.name}" }
 
             Builder.guild(e.guild, target).apply {
                 target.guildMap += this
@@ -182,7 +181,7 @@ class DiscordNode(val api: ApiWrapper) : EventInput<DiscordNode>, ClientModel {
     }
 
     companion object {
-        private val logger = createLogger()
+        private val logger = loggerFor<DiscordNode>()
         private val INVITE_REGEX = Pattern.compile("^(?:https?\\:\\/\\/)?discord\\.gg\\/(.+)$")
 
         fun build(data: ReadyEventModel, api: ApiWrapper) = Builder.root(data, api)

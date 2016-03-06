@@ -3,16 +3,14 @@ package net.serverpeon.discord.internal.ws.client
 import com.google.common.collect.ImmutableMap
 import com.google.gson.Gson
 import com.google.gson.JsonElement
-import net.serverpeon.discord.internal.createLogger
-import net.serverpeon.discord.internal.kTrace
-import net.serverpeon.discord.internal.kWarn
+import net.serverpeon.discord.internal.loggerFor
 import net.serverpeon.discord.internal.ws.PayloadIn
 import java.io.Reader
 import java.util.concurrent.atomic.AtomicInteger
 
 internal class MessageTranslator private constructor(private val dsl: DSL,
                                                      private val handlers: ImmutableMap<String, DSL.(JsonElement) -> Any>) {
-    private val logger = createLogger()
+    private val logger = loggerFor<MessageTranslator>()
     private val sequence = AtomicInteger(-1)
 
     class Builder(private val gson: Gson) {
@@ -37,7 +35,7 @@ internal class MessageTranslator private constructor(private val dsl: DSL,
     fun translate(input: Reader): Any? {
         val event = dsl.gson.fromJson(input, PayloadIn::class.java)
 
-        logger.kTrace {
+        logger.trace {
             "[${event.t},${event.op},${event.s}] ${dsl.gson.toJson(event.d)}"
         }
 
@@ -53,7 +51,7 @@ internal class MessageTranslator private constructor(private val dsl: DSL,
                 if (handler != null) {
                     dsl.handler(event.d)
                 } else {
-                    logger.kWarn { "Unhandled event: [${event.t}] ${dsl.gson.toJson(event.d)}" }
+                    logger.warn { "Unhandled event: [${event.t}] ${dsl.gson.toJson(event.d)}" }
                     null
                 }
             }
@@ -65,7 +63,7 @@ internal class MessageTranslator private constructor(private val dsl: DSL,
                 }
             }
             else -> {
-                logger.kWarn { "Unknown op: $event" }
+                logger.warn { "Unknown op: $event" }
             }
         }
     }

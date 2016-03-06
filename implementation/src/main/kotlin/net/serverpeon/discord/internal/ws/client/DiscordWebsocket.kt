@@ -1,8 +1,7 @@
 package net.serverpeon.discord.internal.ws.client
 
 import com.google.gson.Gson
-import net.serverpeon.discord.internal.createLogger
-import net.serverpeon.discord.internal.kDebug
+import net.serverpeon.discord.internal.loggerFor
 import net.serverpeon.discord.internal.send
 import net.serverpeon.discord.internal.toObservable
 import net.serverpeon.discord.internal.ws.data.inbound.Misc
@@ -20,7 +19,7 @@ import java.util.concurrent.TimeUnit
 import javax.websocket.Session
 
 object DiscordWebsocket {
-    private val logger = createLogger()
+    private val logger = loggerFor<DiscordWebsocket>()
 
     object MembersReady
 
@@ -83,7 +82,7 @@ object DiscordWebsocket {
                 }.subscribe()
 
                 eventSource.connect { subscription ->
-                    logger.kDebug { "Initial event stream established" }
+                    logger.debug { "Initial event stream established" }
                     sub.add(subscription)
                 }
             }.concatWith(Observable.concat(replacementEventStreams))
@@ -94,7 +93,7 @@ object DiscordWebsocket {
                                      totalExpectedChunks: Int,
                                      eventSource: Observable<EventWrapper>,
                                      emitTo: Subscriber<in EventWrapper>): Subscription {
-        logger.kDebug { "Expecting $totalExpectedChunks MEMBERS_CHUNK events" }
+        logger.debug { "Expecting $totalExpectedChunks MEMBERS_CHUNK events" }
 
         // Listen for MembersChunk events, count until [totalExpectedChunks] and complete
         val lastExpectedChunkEvent = eventSource.filter {
@@ -104,7 +103,7 @@ object DiscordWebsocket {
         val reasonableTimeout = Observable.timer(30, TimeUnit.SECONDS).ignoreElements()
 
         return Observable.amb(lastExpectedChunkEvent, reasonableTimeout).doOnCompleted {
-            logger.kDebug { "Members fully loaded" }
+            logger.debug { "Members fully loaded" }
             emitTo.onNext(EventWrapper(session, MembersReady))
         }.subscribe()
     }
@@ -144,7 +143,7 @@ object DiscordWebsocket {
             setupReconnectBehaviour(sessionId, eventSource, replacementEventStreams, translator, gson)
 
             eventSource.connect { subscription ->
-                logger.kDebug { "Resume event stream established" }
+                logger.debug { "Resume event stream established" }
                 sub.add(subscription)
             }
         }
@@ -180,7 +179,7 @@ object DiscordWebsocket {
                               session: Session,
                               gson: Gson,
                               sub: Subscriber<*>) {
-        logger.kDebug { "Sending keep alive every ${timeout}ms" }
+        logger.debug { "Sending keep alive every ${timeout}ms" }
 
         // Create KeepAlive thread separately from parent observable
         //  should hopefully sever the root of Misc.Ready
@@ -189,7 +188,7 @@ object DiscordWebsocket {
         }
 
         sub.add(Subscriptions.create {
-            logger.kDebug { "Should shut down keepalive now" }
+            logger.debug { "Should shut down keepalive now" }
         })
 
         // If keep-alive errors pass to parent, also unsubscribe when parent does.

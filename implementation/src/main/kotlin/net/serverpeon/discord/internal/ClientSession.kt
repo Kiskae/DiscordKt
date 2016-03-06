@@ -35,7 +35,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
                     metadata: DiscordClient.Builder.UserMetadata,
                     private val retryHandler: RetryHandler) : DiscordClient(), ClientModel {
     companion object {
-        private val logger = createLogger()
+        private val logger = loggerFor<ClientSession>()
         private const val DISCORD_API_VERSION = 3
     }
 
@@ -96,7 +96,7 @@ class ClientSession(apiSource: Single<ApiWrapper>,
             if (event is Misc.Ready) {
                 // If we receive a Ready event, generate a new model
                 apiWrapper.map { api ->
-                    logger.kDebug { "Rebuilding Discord model" }
+                    logger.debug { "Rebuilding Discord model" }
                     val newModel = DiscordNode.build(event.data, api)
                     rawModelContainer.call(newModel) // Update the model
                     newModel

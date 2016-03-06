@@ -1,7 +1,6 @@
 package net.serverpeon.discord.internal.ws.client
 
-import net.serverpeon.discord.internal.createLogger
-import net.serverpeon.discord.internal.kTrace
+import net.serverpeon.discord.internal.loggerFor
 import org.glassfish.tyrus.client.ClientManager
 import rx.Observable
 import rx.Subscriber
@@ -19,7 +18,7 @@ internal class DiscordEndpoint private constructor(
         val translator: MessageTranslator,
         val subscriber: Subscriber<in EventWrapper>
 ) : Endpoint() {
-    private val logger = createLogger()
+    private val logger = loggerFor<DiscordEndpoint>()
 
     override fun onOpen(session: Session, config: EndpointConfig) {
         // Add message forwarder
@@ -28,7 +27,7 @@ internal class DiscordEndpoint private constructor(
 
         // Allow closing the connection with Rx
         subscriber.add(Subscriptions.create {
-            logger.kTrace { "Closing websocket session due to Rx.unsubscribe()" }
+            logger.trace { "Closing websocket session due to Rx.unsubscribe()" }
             session.close(
                     CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Subscriber.unsubscribe() called")
             )
@@ -61,7 +60,7 @@ internal class DiscordEndpoint private constructor(
     object StartEvent
 
     override fun onClose(session: Session, closeReason: CloseReason) {
-        logger.kTrace { "Endpoint[${session.requestURI}] closed: $closeReason" }
+        logger.trace { "Endpoint[${session.requestURI}] closed: $closeReason" }
 
         if (subscriber.isUnsubscribed) return
 
@@ -73,7 +72,7 @@ internal class DiscordEndpoint private constructor(
     }
 
     override fun onError(session: Session, thr: Throwable) {
-        logger.kTrace(thr) { "Endpoint[${session.requestURI}] encountered an exception" }
+        logger.trace(thr) { "Endpoint[${session.requestURI}] encountered an exception" }
 
         if (subscriber.isUnsubscribed) return
 
