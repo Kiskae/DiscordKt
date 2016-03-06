@@ -23,6 +23,11 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.13'
 }
 
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
 publishing {
     publications {
         implementation(MavenPublication) {
@@ -31,6 +36,8 @@ publishing {
             version rootProject.version
 
             from components.java
+
+            artifact sourcesJar
         }
     }
 }
