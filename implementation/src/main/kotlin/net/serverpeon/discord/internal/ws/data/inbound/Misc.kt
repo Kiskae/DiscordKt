@@ -46,17 +46,18 @@ interface Misc : Event {
                 = handler.presenceUpdate(visitor, this)
 
         /**
-         * Includes username, discriminator and avatar if one of those changes (or it seems at random other places)
+         * Includes username, discriminator, bot and avatar if one of those changes (or it seems at random other places)
          * Should be used to update the user model
          */
         data class UserRef(val id: DiscordId<User>,
                            val username: String?,
                            val discriminator: String?,
-                           val avatar: DiscordId<User.Avatar>?) {
+                           val avatar: DiscordId<User.Avatar>?,
+                           val bot: Boolean?) {
             fun toUserModel(): UserModel {
                 require(username != null)
                 require(discriminator != null)
-                return UserModel(username!!, id, discriminator!!, avatar)
+                return UserModel(username!!, id, discriminator!!, avatar, bot)
             }
         }
 
