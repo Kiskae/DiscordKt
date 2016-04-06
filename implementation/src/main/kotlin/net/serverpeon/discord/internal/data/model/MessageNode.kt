@@ -105,7 +105,7 @@ class MessageNode(val root: DiscordNode,
                         val closingChars = content.indexOf("```", codeBlockEsc + 4)
                         if (closingChars != -1) {
                             val code = content.substring((codeBlockEsc + 3)..(closingChars - 1))
-                            val parts = code.split(' ', limit = 2)
+                            val parts = code.split('\n', limit = 2)
                             if (parts.size == 2) {
                                 builder.appendCodeBlock(parts[1], parts[0])
                             } else {
