@@ -69,7 +69,7 @@ private class RxCallback<T>(val sub: Subscriber<in Response<T>>) : Callback<T> {
     override fun onResponse(call: Call<T>, response: Response<T>) {
         if (sub.isUnsubscribed) {
             // NOOP
-        } else if (response.isSuccess) {
+        } else if (response.isSuccessful) {
             sub.onNext(response)
             sub.onCompleted()
         } else if (response.code() == 429) {
@@ -161,7 +161,7 @@ private class FutureCallback<T>(val future: CompletableFuture<T>) : Callback<T> 
     }
 
     override fun onResponse(call: Call<T>, response: Response<T>) {
-        if (response.isSuccess) {
+        if (response.isSuccessful) {
             future.complete(response.body())
         } else if (response.code() == 429) {
             future.completeExceptionally(ImplRateLimitException(call, response, response.headers().get("Retry-After")?.let {

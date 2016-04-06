@@ -4,13 +4,12 @@ dependencies {
     compile project(":api")
 
     // Retrofit
-    compile 'com.squareup.retrofit2:retrofit:2.0.0-beta4'
-    compile 'com.squareup.retrofit2:converter-gson:2.0.0-beta4'
+    compile 'com.squareup.retrofit2:retrofit:2.0.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.0.0'
 
     // javax.websocket
     compile 'javax.websocket:javax.websocket-api:1.1'
-    compile 'org.glassfish.tyrus:tyrus-client:1.12'
-    compile 'org.glassfish.tyrus:tyrus-container-grizzly-client:1.12'
+    compile 'org.glassfish.tyrus.bundles:tyrus-standalone-client:1.12'
 
     // Libraries
     compile 'com.jakewharton.rxrelay:rxrelay:1.0.0'
