@@ -106,7 +106,11 @@ class MessageNode(val root: DiscordNode,
                         if (closingChars != -1) {
                             val code = content.substring((codeBlockEsc + 3)..(closingChars - 1))
                             val parts = code.split(' ', limit = 2)
-                            builder.appendCodeBlock(parts[1], parts[0])
+                            if (parts.size == 2) {
+                                builder.appendCodeBlock(parts[1], parts[0])
+                            } else {
+                                builder.appendCodeBlock(parts[0], "unknown")
+                            }
                             i = closingChars + 3
                         } else {
                             //Just append all the text until after the ```
