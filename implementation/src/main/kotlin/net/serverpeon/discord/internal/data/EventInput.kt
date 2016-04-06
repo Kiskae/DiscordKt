@@ -49,7 +49,13 @@ interface EventInput<T : EventInput<T>> {
         fun guildMemberChunks(target: T, e: Misc.MembersChunk) = target.wireToGuild(e.guild_id, e)
 
         fun typingStart(target: T, e: Misc.TypingStart) = target.wireToChannel(e.channel_id, e)
-        fun presenceUpdate(target: T, e: Misc.PresenceUpdate) = target.wireToGuild(e.guild_id, e)
+        fun presenceUpdate(target: T, e: Misc.PresenceUpdate) {
+            //TODO: else wire to relationships?
+            e.guild_id?.apply {
+                target.wireToGuild(this, e)
+            }
+        }
+
         fun voiceStateUpdate(target: T, e: Misc.VoiceStateUpdate) {
             if (e.update.guild_id != null) {
                 target.wireToGuild(e.update.guild_id, e)

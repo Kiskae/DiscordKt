@@ -33,10 +33,13 @@ interface Misc : Event {
                 = handler.typingStart(visitor, this)
     }
 
+    /**
+     * If the presence update is for a relationship instead of a guild member, 'roles' and 'guild_id' will be null
+     */
     data class PresenceUpdate(val user: UserRef,
                               val status: Status,
-                              val roles: List<DiscordId<Role>>,
-                              val guild_id: DiscordId<Guild>,
+                              val roles: List<DiscordId<Role>>?,
+                              val guild_id: DiscordId<Guild>?,
                               val game: Playing?) : Misc {
 
         override fun <T : EventInput<T>> accept(visitor: T, handler: EventInput.Handler<T>)
