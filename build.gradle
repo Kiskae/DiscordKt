@@ -19,7 +19,7 @@ plugins {
 apply plugin: 'kotlin'
 
 group 'net.serverpeon'
-version '1.0-alpha2'
+version '1.0-alpha3-SNAPSHOT'
 
 allprojects {
     repositories {
